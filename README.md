@@ -58,8 +58,8 @@ hash of an uploaded file. A hash looks like the string which consists of hexadec
 ### 2. Download file
 
 Sending a download request:
-* Use HTTP-request GET with URI: “/v1/files/SHA256_HASH
-where SHA256_HASH is the hash of a downloaded file. A hash looks like a string which consists of hexadecimal digits. SHA256_HASH is a unique identifier of a file in the file system of storage.
+* Use HTTP-request GET with URI: “/[sharedirname]/filepath
+where sharedirname is the name of the shared dir and the filepath is the path of the file you want to download. 
 * Send a request.
 
 
