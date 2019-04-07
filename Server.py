@@ -26,7 +26,7 @@ HTTP_STATUS = {"OK": ResponseStatus(code=200, message="OK"),
 
 # buffer size that is used to hash, read, write files
 CHUNK_SIZE = 256 * 1024
-# path of directory where files are stored
+# path of directory where files are stored which is the current dir path of the Server
 Root_DIR = getcwd() 
 SERVER_ADDRESS = ('127.0.0.1', 8080)
 
