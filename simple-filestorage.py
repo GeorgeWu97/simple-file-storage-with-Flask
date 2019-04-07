@@ -2,7 +2,7 @@
 
 from hashlib import sha256
 from re import match
-from os import path, getcwd, mkdir, rmdir, remove, replace
+from os import path, getcwd, mkdir, rmdir, remove, replace, listdir
 from datetime import datetime
 from collections import namedtuple
 from tempfile import NamedTemporaryFile
@@ -27,7 +27,7 @@ HTTP_STATUS = {"OK": ResponseStatus(code=200, message="OK"),
 # buffer size that is used to hash, read, write files
 CHUNK_SIZE = 256 * 1024
 # path of directory where files are stored
-FILES_DIR = getcwd() + '/files/'
+Root_DIR = getcwd() 
 SERVER_ADDRESS = ('127.0.0.1', 8080)
 
 
@@ -108,7 +108,7 @@ class RequestsHandler(BaseHTTPRequestHandler):
         """Handles GET-requests by url /v1/files/[md5_hash]
         Returns a file if it exists
         """
-
+        
         url_path = self.path.rstrip()
 
         print("{0}\t[START]: Received POST for {1}".format(date_now(),
@@ -135,11 +135,11 @@ class RequestsHandler(BaseHTTPRequestHandler):
 
         url_path = self.path.rstrip()
 
-        print("{0}\t[START]: Received GET for {1}".format(date_now(),
+        print("{0}[START]: Received GET for {1}".format(date_now(),
                                                           url_path))
 
         try:
-            if match(r'^/v1/files/[0-9a-fA-F]{64}/?$', url_path):
+            if match(r'^/share/?', url_path):
                 response = self.download_file()
                 self.send_headers(response.status, response.content_type,
                                   response.content_length)
@@ -271,20 +271,35 @@ class RequestsHandler(BaseHTTPRequestHandler):
         """If requested file exists return response data for downloading"""
 
         url_path = self.path.rstrip()
-        file_hash = url_path.split('/')[-1]
-        file_dir = FILES_DIR + file_hash[:2] + '/'
-        file_path = file_dir + file_hash
+        url_dir = url_path.split('/')[1:]
+        file_path = Root_DIR
+        for item in url_dir: file_path += '/' + item 
         data_stream = None
-
+        
         if path.exists(file_path):
             try:
-                data_stream = open(file_path, 'br')
-                content_len = path.getsize(file_path)
-                return ResponseData(
-                    status=HTTP_STATUS['OK'],
-                    content_type='application/octet-stream',
-                    content_length=content_len, data_stream=data_stream)
-
+                if path.isfile(file_path):
+               
+                    data_stream = open(file_path, 'br')
+                    content_len = path.getsize(file_path)
+                    return ResponseData(
+                        status=HTTP_STATUS['OK'],
+                        content_type='application/octet-stream',
+                        content_length=content_len, data_stream=data_stream)
+                else:
+                    file_list = listdir(file_path)
+                    with open(file_path + '/listdir.html', 'w', encoding = 'utf-8') as w:
+                        for file in file_list: 
+                            if file != 'listdir.html':
+                                w.write(file + '<br/>')
+                        w.close()
+                    
+                    data_stream = open(file_path + '/listdir.html', 'br')
+                    content_len = path.getsize(file_path + '/listdir.html')
+                    return ResponseData(status = HTTP_STATUS['OK'],
+                                        content_type = 'text/html',
+                                        data_stream = data_stream)
+                                        
             except OSError as err:
                 if data_stream is not None:
                     data_stream.close()
