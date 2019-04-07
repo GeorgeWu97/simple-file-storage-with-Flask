@@ -58,7 +58,7 @@ hash of an uploaded file. A hash looks like the string which consists of hexadec
 ### 2. Download file
 
 Sending a download request:
-* Use HTTP-request GET with URI: “/[sharedirname]/filepath
+* Use HTTP-request GET with URI: "/[sharedirname]/filepath"
 where sharedirname is the name of the shared dir and the filepath is the path of the file you want to download. 
 * Send a request.
 
