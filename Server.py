@@ -28,7 +28,7 @@ HTTP_STATUS = {"OK": ResponseStatus(code=200, message="OK"),
 CHUNK_SIZE = 256 * 1024
 # path of directory where files are stored which is the current dir path of the Server
 Root_DIR = getcwd() 
-SERVER_ADDRESS = ('127.0.0.1', 8080)
+SERVER_ADDRESS = ('10.128.206.151', 6174)
 
 
 def main():
@@ -170,7 +170,7 @@ class RequestsHandler(BaseHTTPRequestHandler):
                                                              url_path))
 
         try:
-            if match(r'^/v1/files/[0-9a-fA-F]{64}/?$', url_path):
+            if match(r'^/share/?', url_path):
                 response = self.delete_file()
                 self.send_headers(response.status)
             else:
@@ -178,7 +178,7 @@ class RequestsHandler(BaseHTTPRequestHandler):
         except HTTPStatusError as err:
             self.send_error(err.code, err.message, err.explain)
 
-        print("{}\t[END]".format(date_now()))
+        print("{}[END]".format(date_now()))
 
     def handle_not_found(self):
         """Handles routing for unexpected paths"""
@@ -313,24 +313,39 @@ class RequestsHandler(BaseHTTPRequestHandler):
         """Delete file if exists"""
 
         url_path = self.path.rstrip()
-        file_hash = url_path.split('/')[-1]
-        file_dir = FILES_DIR + file_hash[:2] + '/'
-        file_path = file_dir + file_hash
-
+        url_dir = url_path.split('/')[1:]
+        file_path = Root_DIR
+        for item in url_dir: file_path += '/' + item 
+        
         if path.exists(file_path):
             try:
-                remove(file_path)
-                try:
-                    rmdir(file_dir)
-                except OSError as err:
-                    print(err)
+                self.del_rec(file_path)
                 return ResponseData(status=HTTP_STATUS['OK'])
             except OSError as err:
                 raise HTTPStatusError(HTTP_STATUS["INTERNAL_SERVER_ERROR"],
                                       str(err))
         else:
             self.handle_not_found()
-
+            
+    def del_rec(self, str):
+        """Delete directories recursively"""
+        if path.exists(str):
+            if path.isfile(str):
+                try:
+                    remove(str)
+                except OSError as err:
+                    print(err)
+            else:
+                try:
+                    file_list = listdir(str)
+                    for file in file_list:
+                        str1 = str + '/' + file
+                        print(str1)
+                        self.del_rec(str1)
+                            
+                    rmdir(str)
+                except OSError as err:
+                    print(err)
 
 if __name__ == '__main__':
     main()
