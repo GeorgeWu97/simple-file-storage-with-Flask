@@ -101,7 +101,6 @@ class RequestsHandler(BaseHTTPRequestHandler):
     The name and the unique identifier of a file is the value of
     MD5 hash function where the function argument is a file. It looks like
     a string which consists of hexadecimal digits.
-
     """
 
     def do_POST(self):
@@ -115,7 +114,7 @@ class RequestsHandler(BaseHTTPRequestHandler):
                                                            url_path))
 
         try:
-            if match(r'^/v1/files/?$', url_path):
+            if match(r'^/share/?', url_path):
                 response = self.upload_file()
                 self.send_headers(response.status, response.content_type,
                                   response.content_length)
@@ -197,7 +196,27 @@ class RequestsHandler(BaseHTTPRequestHandler):
     def upload_file(self):
         """Upload file to server and return response data"""
         payload = None
+
+        url_path = self.path.rstrip()
+        url_dir = url_path.split('/')[1:]
+        file_path = Root_DIR
+        for item in url_dir: file_path += '/' + item 
+        file_dir = file_path + '/'
+        
+
         try:
+            if "Content-Name" in self.headers:
+                try:
+                    content_name = self.headers['Content-Name']
+                    file_path = file_dir + content_name
+                except ValueError:
+                    raise HTTPStatusError(HTTP_STATUS["BAD_REQUEST"],
+                                          "Wrong parameters")
+            # raise HTTPStatusError(HTTP_STATUS["BAD_REQUEST"],
+            #                       "Wrong parameters")
+            if not path.exists(file_dir):
+                mkdir(file_dir)
+
             if 'Content-Length' in self.headers:
                 try:
                     content_len = int(self.headers['Content-Length'])
@@ -207,7 +226,7 @@ class RequestsHandler(BaseHTTPRequestHandler):
                 if content_len:
 
                     # create temp file which has constraint of buffer size
-                    payload = NamedTemporaryFile(dir=FILES_DIR,
+                    payload = NamedTemporaryFile(dir=file_dir,
                                                  buffering=CHUNK_SIZE,
                                                  delete=False)
 
@@ -223,19 +242,20 @@ class RequestsHandler(BaseHTTPRequestHandler):
 
                     file_hash = sha256_hash_hex(payload)
 
-                    try:
-                        mkdir(FILES_DIR)
-                    except FileExistsError as err:
-                        print(err)
+                    # try:
+                    #     mkdir(FILES_DIR)
+                    # except FileExistsError as err:
+                    #     print(err)
 
-                    file_dir = FILES_DIR + file_hash[:2] + '/'
-                    file_path = file_dir + file_hash
+                    # file_dir = FILES_DIR + file_hash[:2] + '/'
+                    # file_path = file_dir + file_hash
 
                     if not path.exists(file_path):
-                        try:
-                            mkdir(file_dir)
-                        except FileExistsError as err:
-                            print(err)
+                        # try:
+                        #     mkdir(file_dir)
+                        # except FileExistsError as err:
+                        #     print(err)
+
                         # protection against race condition
                         # replace temporary file with name file_path
                         tmp_file = payload.name
@@ -243,6 +263,7 @@ class RequestsHandler(BaseHTTPRequestHandler):
 
                         data = bytes(file_hash.encode('UTF-8'))
                         content_len = len(data)
+
                         return ResponseData(
                             status=HTTP_STATUS['CREATED'],
                             content_type='text/plain; charset=utf-8',
@@ -250,8 +271,8 @@ class RequestsHandler(BaseHTTPRequestHandler):
 
                     return ResponseData(status=HTTP_STATUS['OK'])
 
-            raise HTTPStatusError(HTTP_STATUS["BAD_REQUEST"],
-                                  "Wrong parameters")
+            # raise HTTPStatusError(HTTP_STATUS["BAD_REQUEST"],
+            #                       "Wrong parameters")
 
         except OSError as err:
             raise HTTPStatusError(HTTP_STATUS["INTERNAL_SERVER_ERROR"],
