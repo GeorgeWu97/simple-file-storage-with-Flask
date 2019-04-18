@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>File storage</title>
+    <link rel="icon" href="{{url_for('static',filename='file.ico')}}" >
+    <!-- Bootstrap core CSS -->
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom styles for this template -->
+    <link href="/static/dashboard.css" rel="stylesheet">
+    <style type="text/css">
+      #right-menue{
+        position: absolute;
+        z-index: 99999;
+        text-align: center;
+        overflow: hidden;
+        width: 100px;
+        background-color: #FFFFFF;
+        border: dimgray 1px solid !important;
+        font-size: 14px;
+        list-style-type: none;
+        display: none;    
+      }
+    </style>
+    <script language="javascript" type="text/javascript">
+      window.onload = function(){  
+        var forRight = document.getElementById("right-menue");  
+        var elements = document.getElementsByName("file");
+        for (var i=0; i<elements.length;i++){
+          elements[i].oncontextmenu=function(event){
+            var x=$('#'+this.id).position().left;
+            var y=$('#'+this.id).position().top;
+            var w=this.offsetWidth
+            var h=this.offsetHeight
+            var event = event || window.event;            
+            forRight.style.display = "block";  
+            //菜单定位  
+            forRight.style.left = x+3/4*w+"px";  
+            forRight.style.top = y+1/2*h+"px";  
+            //return false为了屏蔽默认事件  
+            return false;  
+          }
+        }
+        document.onclick=function(){  
+          forRight.style.display = "none";  
+        };  
+      };    
+      function fileselect(){
+        document.getElementById("fileToUpload").click(); 
+      }
+      function fileupload(path){
+        var fileobj= document.getElementById("fileToUpload").files[0];
+        var url="/upload/"+path
+        var form=new FormData();
+        form.append("file",fileobj)
+        $.ajax({
+            url:url,
+            type:'post',
+            data:form,
+            processData:false,
+            contentType:false,
+            success:function (res) {
+                let data = JSON.parse(res);
+                if (data.code == 200){
+                    location.href=data.url
+                }else {
+                    alert(data.error)
+                }
+            }
+        });
+      }
+      function next_dir(path){
+        location.href = "/dir_index/" + path
+      }
+      function download(path){
+        location.href = "/download/" + path
+      }
+    </script>
+  </head>
+
+  <body>
+
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">File storage</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav navbar-right">
+            <li><a href="#">File</a></li>
+            <li><a href="#">Settings</a></li>
+            <li><a href="#">Profile</a></li>
+            <li><a href="#">Help</a></li>
+          </ul>
+          <form class="navbar-form navbar-right">
+            <input type="text" class="form-control" placeholder="Search...">
+          </form>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-sm-3 col-md-1 sidebar">
+          <ul class="nav nav-sidebar">
+            <li class="active"><a href="#">Overview <span class="sr-only">(current)</span></a></li>
+            <li><a href="#" onClick="self.location=document.referrer;">Goback</a></li>
+            <li>
+              <a href="javascript:fileselect()">Upload</a>
+              <form action="" enctype="multipart/form-data" method="post">     
+                <input type="file" name={{path}} id="fileToUpload" onchange="fileupload(this.name)"style="display:none">
+              </form>
+            </li>
+            <li><a href="#">New file</a></li>
+            <li><a href="#">New folder</a></li>
+            <li><a href="#">Log out</a></li>
+          </ul>
+        </div>
+        <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-1 main">
+          <h1 class="page-header">View</h1>
+
+          <div class="row placeholders">
+            <div id="right-menue" class="right-menue">
+              <div align="center">
+                <a href='javascript:delete()'> Delete</a>
+              </div>
+            </div>
+            {% for name,type,class,id in list%}
+              <div id ={{name+type}} name='file' class="col-xs-5 col-sm-3 placeholder">              
+                {% if type != 'dir' %}
+                  <img src={{"/static/icon/"+class+".ico"}} width="100" height="100" class="img-responsive" alt="Generic placeholder thumbnail"
+                  id={{path+'/'+name+'.'+type}} ondblclick="download(this.id)">
+                {% else %}
+                  <img src={{"/static/icon/"+class+".ico"}} width="100" height="100" class="img-responsive" alt="Generic placeholder thumbnail" 
+                  id={{path+'/'+name}} ondblclick="next_dir(this.id)">
+                {% endif %}
+                <h4>{{name}}</h4>
+                <span class="text-muted">{{type}}</span>
+              </div>
+            {% endfor %}
+          </div>
+
+          <h2 class="sub-header">file information</h2>
+          <div class="table-responsive">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Name</th>
+                  <th>Type</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for name,type,class,id in list%}
+                  <tr>
+                    <td>{{"%03d" % id}}</td>
+                    <td>{{name}}</td>
+                    <td>{{type}}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="/static/js/bootstrap.min.js"></script>
+  </body>
+</html>
