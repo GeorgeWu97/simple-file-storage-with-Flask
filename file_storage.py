@@ -1,7 +1,9 @@
+#! /usr/bin/env python3
 # -*- coding:utf-8 -*-
 from flask import Flask, render_template, abort, send_from_directory, request, redirect, url_for
 from werkzeug.utils import secure_filename
 import os
+from os import path, getcwd, mkdir, rmdir, remove, replace, listdir
 import json
 
 validtype = ['txt', 'pdf', 'doc', 'docx', 'bmp', 'jpg', 'jpeg', 'png', 'gif', 'cr2',
@@ -71,7 +73,43 @@ def upload(dir_path):
         f.save(os.path.join(dir_path,fname))
         return json.dumps({'code':200,'url':url_for('index',path_name=dir_path, _external=True)})
     else: abort(405)
-    
+
+@app.route('/delete/<path:file_path>')
+def delete(file_path):
+    if not secure_path(file_path): abort(405)
+    if file_path[-1]=='/': file_path = file_path[:-1]
+    root_dir = os.getcwd()
+    target_path = root_dir + '/' + file_path
+    if os.path.exists(target_path):
+        del_rec(target_path)
+        # return json.dumps({'code':200,'url':url_for('index',path_name=file_path, _external=True)})
+        return redirect(url_for('index', path_name = parent(file_path)))
+    else: abort(404)
+
+def del_rec(str):
+    if path.exists(str):
+        if path.isfile(str):
+            try:
+                remove(str)
+            except OSError as err:
+                print(err)
+        else:
+            try:
+                file_list = listdir(str)
+                for file in file_list:
+                    str1 = str + '/' + file
+                    del_rec(str1)                  
+                rmdir(str)
+            except OSError as err:
+                print(err)
+                
+def parent(str):
+    k = len(str) - 1
+    while (k > 0) and (str[k] != '/'):
+        k = k - 1
+    return str[0:k]
+        
+               
 if __name__ == '__main__':
-    app.run(host = '127.0.0.1', port = '8080', debug = True)
+    app.run(host = '10.128.206.151', port = '6174', debug = True)
     
