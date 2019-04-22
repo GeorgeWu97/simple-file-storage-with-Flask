@@ -8,7 +8,8 @@ import json
 
 validtype = ['txt', 'pdf', 'doc', 'docx', 'bmp', 'jpg', 'jpeg', 'png', 'gif', 'cr2',
              'ppt', 'pptx', 'pps', 'ppsx', 'avi', 'mov', 'qt', 'asf', 'rm', 'mp4',
-             'mp3', 'wav', 'xls', 'xlsx', 'zip', 'rar', 'ico', 'icon']
+             'mp3', 'wav', 'xls', 'xlsx', 'zip', 'rar', '7z', 'iso', 'gz', 'z', 
+             'ico', 'icon', 'html', 'css', 'js', 'py', 'c', 'cpp' ,'java']
 def secure_path(path):
     item = path.strip().split('/')
     for name in item:
@@ -20,16 +21,17 @@ app = Flask('file_storage')
 
 @app.route('/dir_index/<path:path_name>')
 def index(path_name):
-    if path_name[-1] == '/': path_name = path_name[:-1]
+    while path_name[-1] == '/': path_name = path_name[:-1]
     def get_type(type):
         type = type.lower()[1:]
-        if type in ['txt', 'pdf']: return type
+        if type in ['txt', 'pdf', 'iso']: return type
         if type in ['doc', 'docx']: return 'word'
         if type in ['bmp', 'jpg', 'jpeg', 'png', 'gif', 'cr2', 'ico', 'icon']: return 'image'
         if type in ['ppt', 'pptx', 'pps', 'ppsx']: return 'ppt'
         if type in ['avi', 'mov', 'qt', 'asf', 'rm', 'mp4']: return 'video'
         if type in ['mp3', 'wav']: return 'music'
         if type in ['xls', 'xlsx']: return 'excel'
+        if type in ['zip', 'rar', '7z', 'gz', 'z']: return 'compression'
         return 'file'
         
     path = os.getcwd() + '/' + path_name    
@@ -39,9 +41,9 @@ def index(path_name):
     for file in fd_list:
         if os.path.isfile(path + '/' + file):
             name, type = os.path.splitext(file)
-            index_list.append([name, type[1:], get_type(type), idx])
+            index_list.append([file, name, type[1:], get_type(type), idx])
         else:
-            index_list.append([file, 'dir', 'folder', idx])
+            index_list.append([file, file, 'dir', 'folder', idx])
             
         idx += 1
    
@@ -50,7 +52,7 @@ def index(path_name):
 @app.route('/download/<path:file_path>')
 def download(file_path):
     if not secure_path(file_path): abort(405)
-    if file_path[-1]=='/': file_path = file_path[:-1]
+    while file_path[-1]=='/': file_path = file_path[:-1]
     dir_path = os.getcwd()
     if os.path.isfile(dir_path + '/' + file_path):
         return send_from_directory(dir_path, file_path, as_attachment=True)
@@ -77,7 +79,7 @@ def upload(dir_path):
 @app.route('/delete/<path:file_path>')
 def delete(file_path):
     if not secure_path(file_path): abort(405)
-    if file_path[-1]=='/': file_path = file_path[:-1]
+    while file_path[-1]=='/': file_path = file_path[:-1]
     root_dir = os.getcwd()
     target_path = root_dir + '/' + file_path
     if os.path.exists(target_path):
@@ -111,5 +113,5 @@ def parent(str):
         
                
 if __name__ == '__main__':
-    app.run(host = '10.128.206.151', port = '6174', debug = True)
+    app.run(host = '127.0.0.1', port = '8080', debug = True)
     
