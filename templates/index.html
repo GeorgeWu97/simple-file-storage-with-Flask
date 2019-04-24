@@ -62,7 +62,7 @@
         form.append("file",fileobj)
         $.ajax({
             url:url,
-            type:'post',
+            type:"post",
             data:form,
             processData:false,
             contentType:false,
@@ -98,6 +98,28 @@
         while (k>0 && pathn[k]!="/") k--;
         if (k>0) pathn = pathn.substr(0, k)
         location.href = "/dir_index/" + pathn
+      }
+      function newfolder(){
+        var name = prompt("input the folder name", "new folder");
+        if (name){
+          var pathn = {{path|tojson}};
+          pathn = eval("'" + pathn + "'");
+          var url = "/newfolder/" + pathn
+          $.ajax({
+            url:url,
+            type:"post",
+            contentType:"application/json;charset=utf-8",
+            data:JSON.stringify({"name": name}),
+            success:function (res) {
+              let data = JSON.parse(res);
+              if (data.code == 200){
+                location.href=data.url
+              }else {
+                alert(data.error)
+              }
+            }
+          });          
+        }
       }
     </script>
   </head>
@@ -141,8 +163,7 @@
                 <input type="file" name={{path}} id="fileToUpload" onchange="fileupload(this.name)"style="display:none">
               </form>
             </li>
-            <li><a href="#">New file</a></li>
-            <li><a href="#">New folder</a></li>
+            <li><a href="javascript:newfolder()">New folder</a></li>
             <li><a href="{{ url_for('logout') }}">Log out</a></li>
           </ul>
         </div>

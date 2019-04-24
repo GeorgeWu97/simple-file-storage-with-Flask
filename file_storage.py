@@ -11,11 +11,7 @@ validtype = ['txt', 'pdf', 'doc', 'docx', 'bmp', 'jpg', 'jpeg', 'png', 'gif', 'c
              'mp3', 'wav', 'xls', 'xlsx', 'zip', 'rar', '7z', 'iso', 'gz', 'z', 
              'ico', 'icon', 'html', 'css', 'js', 'py', 'c', 'cpp' ,'java']
 def secure_path(path):
-    item = path.strip().split('/')
-    for name in item:
-        if name == '..':
-            return False
-    return True
+    return (path.find('..') == -1)
     
 app = Flask('file_storage')
 app.secret_key = 'some_secret'
@@ -134,17 +130,29 @@ def upload(dir_path):
     
     def valid_file(name):
         ext = name.rsplit('.',1)[1].lower()
-        return (ext in validtype) and (secure_path(name))
+        return (ext in validtype) and (name.find('\\')==-1 and name.find('/')==-1)
         
     if f and valid_file(f.filename):
-        fname=secure_filename(f.filename)
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
 
-        f.save(os.path.join(dir_path,fname))
-        return json.dumps({'code':200,'url':url_for('index',path_name=dir_path, _external=True)})
+        f.save(os.path.join(dir_path,f.filename))
+        return json.dumps({'code':200,'url':url_for('index',path_name=dir_path)})
     else: abort(405)
 
+@app.route('/newfolder/<path:dir_path>', methods=['POST'])
+def createfolder(dir_path):
+    while dir_path[-1]=='/': dir_path = dir_path[:-1]
+    dirname = request.json.get('name')
+    root_dir = os.getcwd()
+    oname = dirname
+    id = 1
+    while os.path.exists(root_dir+'/'+dir_path+'/'+dirname): 
+        dirname = oname+'(%d)'%id
+        id += 1
+    os.mkdir(root_dir+'/'+dir_path+'/'+dirname)
+    return json.dumps({'code':200, 'url':url_for('index', path_name = dir_path)})
+    
 @app.route('/delete/<path:file_path>')
 def delete(file_path):
     if not secure_path(file_path): abort(405)
@@ -179,7 +187,6 @@ def parent(str):
     while (k > 0) and (str[k] != '/'):
         k = k - 1
     return str[0:k]
-        
                
 if __name__ == '__main__':
     app.run(host = '127.0.0.1', port = '8080', debug = True)
