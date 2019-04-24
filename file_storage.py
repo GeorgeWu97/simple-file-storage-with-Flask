@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 # -*- coding:utf-8 -*-
-from flask import Flask, render_template, abort, send_from_directory, request, redirect, url_for
+from flask import Flask, render_template, abort, send_from_directory, request, redirect, url_for, g, flash, session
 from werkzeug.utils import secure_filename
 import os
 from os import path, getcwd, mkdir, rmdir, remove, replace, listdir
@@ -18,6 +18,75 @@ def secure_path(path):
     return True
     
 app = Flask('file_storage')
+app.secret_key = 'some_secret'
+
+@app.route('/')
+def init():
+    return render_template('base.html')
+
+@app.route('/register', methods=('GET', 'POST'))
+def register():
+    """Register a new user.
+    """
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        path = os.getcwd()
+        error = None
+
+        if not username:
+            error = 'Username is required.'
+        elif not password:
+            error = 'Password is required.'
+        else:
+            if os.path.exists(path+'/'+username):
+                error = 'Username  is already registered.'
+
+        if error is None:
+            # the name is available, store it in the database and go to
+            # the login page
+            os.makedirs(path+'/'+username+'/'+password)
+            return redirect(url_for('login'))
+
+        flash(error)
+
+    return render_template('register.html')
+
+@app.route('/login', methods=('GET', 'POST'))
+def login():
+    """Log in a registered user by adding the user id to the session."""
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        path = os.getcwd()
+        error = None
+
+        if not os.path.exists(path+'/'+username):
+            error = 'Incorrect username.'
+            session.clear()
+   #     elif not check_password_hash(user[1], password):
+        elif not os.path.exists(path+'/'+username+'/'+password):
+            error = 'Incorrect password.'
+            session.clear()
+        if error is None:
+            session.clear()
+            session['user_id'] = username
+            #g.user = session
+            return redirect(url_for('index', path_name = username))
+            #render_template('auth/Canteen_list.html')
+
+            # return redirect(url_for('index'))
+
+
+        flash(error)
+        # print (g.user)
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    """Clear the current session, including the stored user id."""
+    session.clear()
+    return redirect(url_for('login'))
 
 @app.route('/dir_index/<path:path_name>')
 def index(path_name):
