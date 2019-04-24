@@ -37,20 +37,23 @@
             var x=this.offsetLeft;
             var y=this.offsetTop;
             var w=this.offsetWidth
-            var h=this.offsetHeight
-            var event = event || window.event;            
+            var h=this.offsetHeight          
             forRight.style.display = "block";  
             //菜单定位  
             forRight.style.left = x+3/4*w+"px";  
             forRight.style.top = y+1/2*h+"px";
             forRight.name = this.id;
             //return false为了屏蔽默认事件  
-            return false;  
+            event.preventDefault();
+            event.stopPropagation();
           }
         }
         document.onclick=function(){  
           forRight.style.display = "none";  
-        };  
+        }; 
+        document.oncontextmenu=function(event){
+          forRight.style.display = "none";
+        }
       };    
       function fileselect(){
         document.getElementById("fileToUpload").click(); 
