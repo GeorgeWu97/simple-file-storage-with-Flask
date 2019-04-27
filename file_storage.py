@@ -148,7 +148,8 @@ def index(path_name):
         else:
             size, time = dirsearch(cpath+ '/' + file)
             size = normalsize(size)
-            time = TimeStampToTime(time)
+            if time == 0 : time = '-------------------------'
+            else: time = TimeStampToTime(time)
             index_list.append([file, 'dir', 'folder', idx, size, time])
             
         idx += 1

@@ -43,6 +43,9 @@
         display:none;
         z-index:99
       }
+      #processtube{
+        display:none;
+      }
     </style>
     <script language="javascript" type="text/javascript"> 
       window.onload = function(){  
@@ -100,16 +103,32 @@
         $.ajax({
             url:url,
             type:"post",
+            async:true,
             data:form,
             processData:false,
             contentType:false,
+            xhr:function(){
+              myxhr = $.ajaxSettings.xhr();
+              if (myxhr.upload){
+                document.getElementById("page-title").innerHTML = "Uploading"
+                $("#processtube").css("display", "block")
+                myxhr.upload.addEventListener('progress', function(e){
+                  var loaded = e.loaded;
+                  var total = e.total;
+                  var percent = Math.floor(100*loaded/total) + "%";
+                  $("#processBar").css("width", percent);
+                  document.getElementById("process").innerHTML = percent;
+                }, false);
+              }
+              return myxhr;
+            },
             success:function (res) {
-                let data = JSON.parse(res);
-                if (data.code == 200){
-                    location.href=data.url
-                }else {
-                    alert(data.error)
-                }
+              let data = JSON.parse(res);
+              if (data.code == 200){
+                location.href=data.url
+              }else {
+                alert(data.error)
+              }
             }
         });
       }
@@ -217,7 +236,16 @@
           </ul>
         </div>
         <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-1 main">
-          <h1 class="page-header">View</h1>
+          <h1 class="page-header">
+            <span id="page-title">View</span>
+            <div id="processtube" class="progress progress-striped active">
+              <div id="processBar" class="progress-bar progress-bar-success" role="progressbar"
+              aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"
+              style="width:0%;">
+                <span id="process" style="font-size:15px;color:Yellow"></span>
+              </div>
+            </div>
+          </h1>
           <div id="context-menu_file">
             <ul class="dropdown-menu mymenu" role="menu">
               <li><a tabindex="-1" href="javascript:filedelete()" style="background-image:url('/static/icon/delete.ico');background-repeat:no-repeat;background-position:62px;">delete</a></li>
