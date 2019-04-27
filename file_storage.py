@@ -5,6 +5,7 @@ from werkzeug.utils import secure_filename
 import os
 from os import path, getcwd, mkdir, rmdir, remove, replace, listdir
 import json
+import time as t
 
 validtype = ['txt', 'pdf', 'doc', 'docx', 'bmp', 'jpg', 'jpeg', 'png', 'gif', 'cr2',
              'ppt', 'pptx', 'pps', 'ppsx', 'avi', 'mov', 'qt', 'asf', 'rm', 'mp4',
@@ -27,7 +28,7 @@ def register():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        path = os.getcwd()
+        path = getcwd()
         error = None
 
         if not username:
@@ -35,7 +36,7 @@ def register():
         elif not password:
             error = 'Password is required.'
         else:
-            if os.path.exists(path+'/'+username):
+            if path.exists(path+'/'+username):
                 error = 'Username  is already registered.'
 
         if error is None:
@@ -54,14 +55,14 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        path = os.getcwd()
+        path = getcwd()
         error = None
 
-        if not os.path.exists(path+'/'+username):
+        if not path.exists(path+'/'+username):
             error = 'Incorrect username.'
             session.clear()
    #     elif not check_password_hash(user[1], password):
-        elif not os.path.exists(path+'/'+username+'/'+password):
+        elif not path.exists(path+'/'+username+'/'+password):
             error = 'Incorrect password.'
             session.clear()
         if error is None:
@@ -87,6 +88,7 @@ def logout():
 @app.route('/dir_index/<path:path_name>')
 def index(path_name):
     while path_name[-1] == '/': path_name = path_name[:-1]
+    
     def get_type(type):
         type = type.lower()[1:]
         if type in ['txt', 'pdf', 'iso']: return type
@@ -98,17 +100,56 @@ def index(path_name):
         if type in ['xls', 'xlsx']: return 'excel'
         if type in ['zip', 'rar', '7z', 'gz', 'z']: return 'compression'
         return 'file'
+    
+    def normalsize(s):
+        nexts = {'B':'K', 'K':'M', 'M':'G', 'G':'T'}
+        ns = 'B'
+        while s >=1024:
+            s /= 1024
+            ns = nexts[ns]
+            
+        return "%.4f"%s+ns
         
-    path = os.getcwd() + '/' + path_name    
-    fd_list = os.listdir(path)
+    def dirsearch(str):
+        size = 0
+        time = 0
+        if path.exists(str):
+            if path.isfile(str):
+                try:
+                    return path.getsize(str), path.getmtime(str)
+                except OSError as err:
+                    abort(405)
+            else:
+                try:
+                    file_list = listdir(str)
+                    for file in file_list:
+                        s, t = dirsearch(str + '/' + file)                  
+                        size += s
+                        time = max(time, t)
+                    return size, time
+                except OSError as err:
+                    abort(405)
+        return size,time 
+    
+    def TimeStampToTime(timestamp):
+        timestruct = t.localtime(timestamp)
+        return t.strftime('%Y-%m-%d %H:%M:%S',timestruct)
+
+    cpath = getcwd() + '/' + path_name    
+    fd_list = listdir(cpath)
     index_list = []
     idx = 1
     for file in fd_list:
-        if os.path.isfile(path + '/' + file):
-            name, type = os.path.splitext(file)
-            index_list.append([file, name, type[1:], get_type(type), idx])
+        if path.isfile(cpath + '/' + file):
+            size = normalsize(path.getsize(cpath + '/' + file))
+            time = TimeStampToTime(path.getmtime(cpath + '/' + file))
+            name, type = path.splitext(file)
+            index_list.append([name, type[1:], get_type(type), idx, size, time])
         else:
-            index_list.append([file, file, 'dir', 'folder', idx])
+            size, time = dirsearch(cpath+ '/' + file)
+            size = normalsize(size)
+            time = TimeStampToTime(time)
+            index_list.append([file, 'dir', 'folder', idx, size, time])
             
         idx += 1
    
@@ -118,8 +159,8 @@ def index(path_name):
 def download(file_path):
     if not secure_path(file_path): abort(405)
     while file_path[-1]=='/': file_path = file_path[:-1]
-    dir_path = os.getcwd()
-    if os.path.isfile(dir_path + '/' + file_path):
+    dir_path = getcwd()
+    if path.isfile(dir_path + '/' + file_path):
         return send_from_directory(dir_path, file_path, as_attachment=True)
     abort(404)
 
@@ -133,10 +174,10 @@ def upload(dir_path):
         return (ext in validtype) and (name.find('\\')==-1 and name.find('/')==-1)
         
     if f and valid_file(f.filename):
-        if not os.path.exists(dir_path):
+        if not path.exists(dir_path):
             os.makedirs(dir_path)
 
-        f.save(os.path.join(dir_path,f.filename))
+        f.save(path.join(dir_path,f.filename))
         return json.dumps({'code':200,'url':url_for('index',path_name=dir_path)})
     else: abort(405)
 
@@ -144,49 +185,50 @@ def upload(dir_path):
 def createfolder(dir_path):
     while dir_path[-1]=='/': dir_path = dir_path[:-1]
     dirname = request.json.get('name')
-    root_dir = os.getcwd()
+    root_dir = getcwd()
     oname = dirname
     id = 1
-    while os.path.exists(root_dir+'/'+dir_path+'/'+dirname): 
+    while path.exists(root_dir+'/'+dir_path+'/'+dirname): 
         dirname = oname+'(%d)'%id
         id += 1
-    os.mkdir(root_dir+'/'+dir_path+'/'+dirname)
+    mkdir(root_dir+'/'+dir_path+'/'+dirname)
     return json.dumps({'code':200, 'url':url_for('index', path_name = dir_path)})
     
 @app.route('/delete/<path:file_path>')
 def delete(file_path):
+    def del_rec(str):
+        if path.exists(str):
+            if path.isfile(str):
+                try:
+                    remove(str)
+                except OSError as err:
+                    abort(405)
+            else:
+                try:
+                    file_list = listdir(str)
+                    for file in file_list:
+                        str1 = str + '/' + file
+                        del_rec(str1)                  
+                    rmdir(str)
+                except OSError as err:
+                    abort(405)
+                    
+    def parent(str):
+        k = len(str) - 1
+        while (k > 0) and (str[k] != '/'):
+            k = k - 1
+        return str[0:k]                
+        
     if not secure_path(file_path): abort(405)
     while file_path[-1]=='/': file_path = file_path[:-1]
-    root_dir = os.getcwd()
+    root_dir = getcwd()
     target_path = root_dir + '/' + file_path
-    if os.path.exists(target_path):
+    if path.exists(target_path):
         del_rec(target_path)
         # return json.dumps({'code':200,'url':url_for('index',path_name=file_path, _external=True)})
         return redirect(url_for('index', path_name = parent(file_path)))
     else: abort(404)
 
-def del_rec(str):
-    if path.exists(str):
-        if path.isfile(str):
-            try:
-                remove(str)
-            except OSError as err:
-                print(err)
-        else:
-            try:
-                file_list = listdir(str)
-                for file in file_list:
-                    str1 = str + '/' + file
-                    del_rec(str1)                  
-                rmdir(str)
-            except OSError as err:
-                print(err)
-                
-def parent(str):
-    k = len(str) - 1
-    while (k > 0) and (str[k] != '/'):
-        k = k - 1
-    return str[0:k]
                
 if __name__ == '__main__':
     app.run(host = '127.0.0.1', port = '8080', debug = True)
