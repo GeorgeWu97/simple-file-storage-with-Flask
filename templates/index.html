@@ -18,6 +18,30 @@
       .file:hover{
         background-color: WhiteSmoke
       }
+      .file-placeholder{
+        border-style: solid;
+        border-width: 2px; 
+        border-color: white;
+      }
+      .filename{
+        overflow:hidden;
+        text-overflow:ellipsis;
+        -o-text-overflow:ellipsis;
+        white-space:nowrap;
+      }
+      .cur{
+        background-color: rgba(135,206,235,0.4);
+        border-style: solid;
+        border-width: 2px;
+        border-color: DeepSkyBlue;
+      }
+      .cur:hover{
+        background-color: rgba(135,206,235,0.4);
+      }
+      .upload:hover{
+        background-color: rgba(135,206,235,0.4);
+        cursor:pointer;
+      }
       .mymenu>li>a:hover{
         background-color: DodgerBlue
       }
@@ -27,21 +51,23 @@
       .img-responsive:hover{
         cursor:pointer
       }
-      .img-responsive:active{
-        background-color: DeepSkyBlue
-      }
       .mymenu{
         display:block
       }
       #context-menu_file{
         position:fixed;
         display:none;
-        z-index:99
+        z-index:99;
       }
       #context-menu_folder{
         position:fixed;
         display:none;
-        z-index:99
+        z-index:99;
+      }
+      #context-menu_upload{
+        position:fixed;
+        display:none;
+        z-index:99;
       }
       #processtube{
         display:none;
@@ -51,50 +77,95 @@
       window.onload = function(){  
         var fileRight = document.getElementById("context-menu_file");
         var folderRight = document.getElementById("context-menu_folder");
+        var uploadRight = document.getElementById("context-menu_upload");
         var file_elements = document.getElementsByName("file");
         var folder_elements = document.getElementsByName("folder");
+        var f_block = document.getElementsByClassName("file");
+        var body = document.getElementById("mainbody");
+        var nomenu = document.getElementById("nomenu");
+        nomenu.oncontextmenu=function(event){
+          folderRight.style.display = "none";  
+          fileRight.style.display = "none";
+          uploadRight.style.display = "none";            
+          event.stopPropagation();
+          return false;
+        }
         for (var i=0;i<file_elements.length;i++){
           file_elements[i].oncontextmenu=function(event){
             fileRight.style.display = "block";  
-            folderRight.style.display = "none"
+            folderRight.style.display = "none";
+            uploadRight.style.display = "none";
             //菜单定位  
             fileRight.style.left = event.clientX+"px";  
             fileRight.style.top = event.clientY+"px";
             fileRight.name = this.id;
             //return false为了屏蔽默认事件  
             event.preventDefault();
-            event.stopPropagation();
           }
         }
         for (var i=0;i<folder_elements.length;i++){
           folder_elements[i].oncontextmenu=function(event){
             folderRight.style.display = "block";  
             fileRight.style.display = "none";
+            uploadRight.style.display = "none";
             //菜单定位  
             folderRight.style.left = event.clientX+"px";  
             folderRight.style.top = event.clientY+"px";
             folderRight.name = this.id;
             //return false为了屏蔽默认事件  
             event.preventDefault();
-            event.stopPropagation();
           }
         }
+        for (var i=0;i<f_block.length;i++){
+          f_block[i].onclick=function(event){
+            folderRight.style.display = "none";  
+            fileRight.style.display = "none";
+            uploadRight.style.display = "none";
+            for (var j=0;j<f_block.length;j++) 
+              if (i != j)f_block[j].classList.remove("cur");
+            this.classList.add("cur");
+            event.stopPropagation();
+          };
+          f_block[i].oncontextmenu=function(event){
+            for (var j=0;j<f_block.length;j++) 
+              if (i != j)f_block[j].classList.remove("cur");
+            this.classList.add("cur");
+            event.stopPropagation();         
+            return false;
+          }
+        };
+
+        body.oncontextmenu=function(event){
+          for (var i=0;i<f_block.length;i++) f_block[i].classList.remove("cur");
+          folderRight.style.display = "none";  
+          fileRight.style.display = "none";
+          uploadRight.style.left=event.clientX+"px";
+          uploadRight.style.top=event.clientY+"px";
+          uploadRight.style.display="block";
+          event.stopPropagation();
+          return false;
+        };
         document.onclick=function(){  
           folderRight.style.display = "none";  
           fileRight.style.display = "none";
+          uploadRight.style.display = "none";
+          for (var i=0;i<f_block.length;i++) f_block[i].classList.remove("cur");
         }; 
         document.oncontextmenu=function(){
+          for (var i=0;i<f_block.length;i++) f_block[i].classList.remove("cur");
           folderRight.style.display = "none";  
           fileRight.style.display = "none";
+          uploadRight.style.display = "none";
         }
         document.onscroll=function(){
           folderRight.style.display = "none";  
           fileRight.style.display = "none";
+          uploadRight.style.display = "none";
         }
       };
       function fileselect(){
         document.getElementById("fileToUpload").click(); 
-      }
+      };
       function fileupload(path){
         var fileobj= document.getElementById("fileToUpload").files[0];
         var url="/upload/"+path
@@ -218,7 +289,9 @@
         </div>
       </div>
     </nav>
-
+    <form action="" enctype="multipart/form-data" method="post">     
+      <input type="file" name={{path}} id="fileToUpload" onchange="fileupload(this.name)"style="display:none">
+    </form>
     <div class="container-fluid">
       <div class="row">
         <div class="col-sm-3 col-md-1 sidebar">
@@ -227,9 +300,6 @@
             <li><a href="javascript:goback()"style="background-image:url('/static/icon/return.ico');background-repeat:no-repeat;background-position:72px;">Goback</a></li>
             <li>
                 <a href="javascript:fileselect()" style="background-image:url('/static/icon/upload.ico');background-repeat:no-repeat;background-position:69px;">Upload</a>
-                <form action="" enctype="multipart/form-data" method="post">     
-                  <input type="file" name={{path}} id="fileToUpload" onchange="fileupload(this.name)"style="display:none">
-                </form>
             </li>
             <li><a href="javascript:newfolder()" style="background-image:url('/static/icon/newfolder.ico');background-repeat:no-repeat;background-position:91px;">New folder</a></li>
             <li><a href="{{ url_for('logout') }}" style="background-image:url('/static/icon/logout.ico');background-repeat:no-repeat;background-position:70px;">Log out</a></li>
@@ -258,20 +328,29 @@
               <li><a tabindex="-1" href="javascript:folderdelete()" style="background-image:url('/static/icon/delete.ico');background-repeat:no-repeat;background-position:62px;">delete</a></li>
             </ul>             
           </div>         
-          <div class="row placeholders">
+          <div id="context-menu_upload">
+            <ul class="dropdown-menu mymenu" role="menu">
+              <li><a tabindex="-1" href="javascript:fileselect()" style="background-image:url('/static/icon/upload.ico');background-repeat:no-repeat;background-position:66px;">upload</a></li>
+            </ul>
+          </div>
+          <div id="mainbody" class="row placeholders">
             {% for name,type,class,id,size,time in list%}
-              <div class="col-xs-5 col-sm-3 placeholder file">              
+              <div class="col-xs-4 col-sm-2 placeholder file file-placeholder">              
                 {% if type != 'dir' %}
-                    <img src={{"/static/icon/"+class+".ico"}} width="100" height="100" class="img-responsive" alt="Generic placeholder thumbnail"
-                    id={{(path+'/'+name+'.'+type) | tojson}} ondblclick="download(this.id)" name="file">
+                  <img src={{"/static/icon/"+class+".ico"}} width="100" height="100" class="img-responsive" alt="Generic placeholder thumbnail"
+                  id={{(path+'/'+name+'.'+type) | tojson}} ondblclick="download(this.id)" name="file">
                 {% else %}
-                    <img src={{"/static/icon/"+class+".ico"}} width="100" height="100" class="img-responsive" alt="Generic placeholder thumbnail" 
-                    id={{(path+'/'+name) | tojson}} ondblclick="next_dir(this.id)" name="folder">
+                  <img src={{"/static/icon/"+class+".ico"}} width="100" height="100" class="img-responsive" alt="Generic placeholder thumbnail" 
+                  id={{(path+'/'+name) | tojson}} ondblclick="next_dir(this.id)" name="folder">
                 {% endif %}
-                <h4>{{name}}</h4>
-                <span class="text-muted">{{type}}</span>
+                  <h4 class = "filename">{{name}}</h4>
+                  <span class="text-muted">{{type}}</span>
               </div>
             {% endfor %}
+            <div id="nomenu" class="col-xs-4 col-sm-2 placeholder file-placeholder">
+              <img class="upload" src="/static/icon/upload_f.ico/" width="100" height="100" alt="Generic placeholder thumbnail" onclick="javascript:fileselect()">
+              <h4>upload</h4>
+            </div>
           </div>
           <h2 class="sub-header">File Information</h2>
           <div class="table-responsive">
