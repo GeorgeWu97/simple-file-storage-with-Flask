@@ -16,7 +16,8 @@
     <link href="/static/dashboard.css" rel="stylesheet">
     <style type="text/css">
       .file:hover{
-        background-color: WhiteSmoke
+        background-color: WhiteSmoke;
+        cursor:pointer
       }
       .file-placeholder{
         border-style: solid;
@@ -48,9 +49,6 @@
       .mya>li>a:hover{
         background-color: Gainsboro
       }
-      .img-responsive:hover{
-        cursor:pointer
-      }
       .mymenu{
         display:block
       }
@@ -73,96 +71,8 @@
         display:none;
       }
     </style>
-    <script language="javascript" type="text/javascript"> 
-      window.onload = function(){  
-        var fileRight = document.getElementById("context-menu_file");
-        var folderRight = document.getElementById("context-menu_folder");
-        var uploadRight = document.getElementById("context-menu_upload");
-        var file_elements = document.getElementsByName("file");
-        var folder_elements = document.getElementsByName("folder");
-        var f_block = document.getElementsByClassName("file");
-        var body = document.getElementById("mainbody");
-        var nomenu = document.getElementById("nomenu");
-        nomenu.oncontextmenu=function(event){
-          folderRight.style.display = "none";  
-          fileRight.style.display = "none";
-          uploadRight.style.display = "none";            
-          event.stopPropagation();
-          return false;
-        }
-        for (var i=0;i<file_elements.length;i++){
-          file_elements[i].oncontextmenu=function(event){
-            fileRight.style.display = "block";  
-            folderRight.style.display = "none";
-            uploadRight.style.display = "none";
-            //菜单定位  
-            fileRight.style.left = event.clientX+"px";  
-            fileRight.style.top = event.clientY+"px";
-            fileRight.name = this.id;
-            //return false为了屏蔽默认事件  
-            event.preventDefault();
-          }
-        }
-        for (var i=0;i<folder_elements.length;i++){
-          folder_elements[i].oncontextmenu=function(event){
-            folderRight.style.display = "block";  
-            fileRight.style.display = "none";
-            uploadRight.style.display = "none";
-            //菜单定位  
-            folderRight.style.left = event.clientX+"px";  
-            folderRight.style.top = event.clientY+"px";
-            folderRight.name = this.id;
-            //return false为了屏蔽默认事件  
-            event.preventDefault();
-          }
-        }
-        for (var i=0;i<f_block.length;i++){
-          f_block[i].onclick=function(event){
-            folderRight.style.display = "none";  
-            fileRight.style.display = "none";
-            uploadRight.style.display = "none";
-            for (var j=0;j<f_block.length;j++) 
-              if (i != j)f_block[j].classList.remove("cur");
-            this.classList.add("cur");
-            event.stopPropagation();
-          };
-          f_block[i].oncontextmenu=function(event){
-            for (var j=0;j<f_block.length;j++) 
-              if (i != j)f_block[j].classList.remove("cur");
-            this.classList.add("cur");
-            event.stopPropagation();         
-            return false;
-          }
-        };
-
-        body.oncontextmenu=function(event){
-          for (var i=0;i<f_block.length;i++) f_block[i].classList.remove("cur");
-          folderRight.style.display = "none";  
-          fileRight.style.display = "none";
-          uploadRight.style.left=event.clientX+"px";
-          uploadRight.style.top=event.clientY+"px";
-          uploadRight.style.display="block";
-          event.stopPropagation();
-          return false;
-        };
-        document.onclick=function(){  
-          folderRight.style.display = "none";  
-          fileRight.style.display = "none";
-          uploadRight.style.display = "none";
-          for (var i=0;i<f_block.length;i++) f_block[i].classList.remove("cur");
-        }; 
-        document.oncontextmenu=function(){
-          for (var i=0;i<f_block.length;i++) f_block[i].classList.remove("cur");
-          folderRight.style.display = "none";  
-          fileRight.style.display = "none";
-          uploadRight.style.display = "none";
-        }
-        document.onscroll=function(){
-          folderRight.style.display = "none";  
-          fileRight.style.display = "none";
-          uploadRight.style.display = "none";
-        }
-      };
+    <script src="/static/js/jquery.min.js"></script>
+    <script> 
       function fileselect(){
         document.getElementById("fileToUpload").click(); 
       };
@@ -172,35 +82,38 @@
         var form=new FormData();
         form.append("file",fileobj)
         $.ajax({
-            url:url,
-            type:"post",
-            async:true,
-            data:form,
-            processData:false,
-            contentType:false,
-            xhr:function(){
-              myxhr = $.ajaxSettings.xhr();
-              if (myxhr.upload){
-                document.getElementById("page-title").innerHTML = "Uploading"
-                $("#processtube").css("display", "block")
-                myxhr.upload.addEventListener('progress', function(e){
-                  var loaded = e.loaded;
-                  var total = e.total;
-                  var percent = Math.floor(100*loaded/total) + "%";
-                  $("#processBar").css("width", percent);
-                  document.getElementById("process").innerHTML = percent;
-                }, false);
-              }
-              return myxhr;
-            },
-            success:function (res) {
-              let data = JSON.parse(res);
-              if (data.code == 200){
-                location.href=data.url
-              }else {
-                alert(data.error)
-              }
+          url:url,
+          type:"post",
+          async:true,
+          data:form,
+          processData:false,
+          contentType:false,
+          xhr:function(){
+            myxhr = $.ajaxSettings.xhr();
+            if (myxhr.upload){
+              document.getElementById("page-title").innerHTML = "Uploading"
+              $("#processtube").css("display", "block")
+              myxhr.upload.addEventListener('progress', function(e){
+                var loaded = e.loaded;
+                var total = e.total;
+                var percent = Math.floor(100*loaded/total) + "%";
+                $("#processBar").css("width", percent);
+                document.getElementById("process").innerHTML = percent;
+              }, false);
             }
+            return myxhr;
+          },
+          success:function (res) {
+            let data = JSON.parse(res);
+            if (data.code == 200){
+              window.location.reload();
+            }else {
+              alert(data.error)
+            }
+          },
+          error:function (){
+            alert("error");
+          }
         });
       }
       function next_dir(path){
@@ -209,11 +122,30 @@
       }
       function foldernext_dir(){
         var path =document.getElementById("context-menu_folder").name;
-        next_dir(path)
+        next_dir(path);
       }
       function download(path){
         var pathn = eval("'" + path + "'");
-        location.href = "/download/"+pathn;
+        var url = "/download/" + pathn;
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);    
+        xhr.responseType = "blob";
+        xhr.onload = function(){
+          if (this.status === 200){
+            var blob = this.response;
+            var reader = new FileReader();
+            reader.readAsDataURL(blob);    
+            reader.onload = function(e){
+              var a = document.createElement('a');
+              a.download = 'data.xlsx';
+              a.href = e.target.result;
+              $("body").append(a);    
+              a.click();
+              $(a).remove();
+            }
+          }
+        }
+        xhr.send()
       }
       function filedownload(){
         var path =document.getElementById("context-menu_file").name;
@@ -259,6 +191,70 @@
           });          
         }
       }
+      $(function(){
+        var file_menu = document.getElementById("context-menu_file");
+        var folder_menu = document.getElementById("context-menu_folder");
+        var upload_menu = document.getElementById("context-menu_upload");
+        $("#mainbody").on("click","div",function(e){
+          $(this).siblings('div').removeClass("cur");
+          if (this.id!="nomenu") {
+            $(this).addClass("cur");
+          };
+          e.stopPropagation();
+          return false;
+        });
+        $("#mainbody").on("contextmenu","div",function(e){
+          $(this).siblings('div').removeClass("cur");
+          if (this.id!="nomenu") {
+            $(this).addClass("cur");
+            if (this.getAttribute("name")=="file"){
+              file_menu.style.display = "block";
+              folder_menu.style.display = "none";
+              upload_menu.style.display = "none";
+              file_menu.style.left = e.clientX+"px";
+              file_menu.style.top = e.clientY+"px";
+              file_menu.name = this.id;
+            }else{
+              folder_menu.style.display = "block";
+              file_menu.style.display = "none";
+              upload_menu.style.display = "none";
+              folder_menu.style.left = e.clientX+"px";
+              folder_menu.style.top = e.clientY+"px";
+              folder_menu.name = this.id;              
+            };
+          };
+          e.stopPropagation();
+          return false;
+        });
+        $("#mainbody").on("contextmenu", function(e){
+          file_menu.style.display = "none";
+          folder_menu.style.display = "none";
+          upload_menu.style.display = "block";          
+          upload_menu.style.left = e.clientX+"px";
+          upload_menu.style.top = e.clientY+"px";
+          $(this).children("div").removeClass("cur");
+          e.stopPropagation();
+          return false;
+        });
+        document.onclick=function(){
+          file_menu.style.display = "none";
+          folder_menu.style.display = "none";
+          upload_menu.style.display = "none";
+          $("#mainbody").children("div").removeClass("cur");
+        };
+        document.oncontextmenu=function(){
+          file_menu.style.display = "none";
+          folder_menu.style.display = "none";
+          upload_menu.style.display = "none";
+          $("#mainbody").children("div").removeClass("cur");          
+          return false;
+        };
+        document.onscroll=function(){
+          file_menu.style.display = "none";
+          folder_menu.style.display = "none";
+          upload_menu.style.display = "none";
+        };
+      });
     </script>
   </head>
 
@@ -279,9 +275,9 @@
         <div id="navbar" class="navbar-collapse collapse">
           <ul class="nav navbar-nav navbar-right">
             <li><a href="#">File</a></li>
-            <li><a href="#">Settings</a></li>
-            <li><a href="#">Profile</a></li>
-            <li><a href="#">Help</a></li>
+            <li><a href="#">Upload</a></li>
+            <li><a href="#">Download</a></li>
+            <li><a href="#">Setting</a></li>
           </ul>
           <form class="navbar-form navbar-right">
             <input type="text" class="form-control" placeholder="Search...">
@@ -335,17 +331,21 @@
           </div>
           <div id="mainbody" class="row placeholders">
             {% for name,type,class,id,size,time in list%}
-              <div class="col-xs-4 col-sm-2 placeholder file file-placeholder">              
-                {% if type != 'dir' %}
-                  <img src={{"/static/icon/"+class+".ico"}} width="100" height="100" class="img-responsive" alt="Generic placeholder thumbnail"
-                  id={{(path+'/'+name+'.'+type) | tojson}} ondblclick="download(this.id)" name="file">
-                {% else %}
-                  <img src={{"/static/icon/"+class+".ico"}} width="100" height="100" class="img-responsive" alt="Generic placeholder thumbnail" 
-                  id={{(path+'/'+name) | tojson}} ondblclick="next_dir(this.id)" name="folder">
-                {% endif %}
+              {% if type != 'dir' %}
+                <div id={{(path+'/'+name+'.'+type) | tojson}} class="col-xs-4 col-sm-2 placeholder file file-placeholder" 
+                ondblclick="download(this.id)" name="file">              
+                  <img src={{"/static/icon/"+class+".ico"}} width="100" height="100" class="img-responsive" alt="Generic placeholder thumbnail">
                   <h4 class = "filename">{{name}}</h4>
                   <span class="text-muted">{{type}}</span>
-              </div>
+                </div>
+              {% else %}
+                <div id={{(path+'/'+name) | tojson}} class="col-xs-4 col-sm-2 placeholder file file-placeholder" 
+                ondblclick="next_dir(this.id)" name="folder">  
+                  <img src={{"/static/icon/"+class+".ico"}} width="100" height="100" class="img-responsive" alt="Generic placeholder thumbnail">
+                  <h4 class = "filename">{{name}}</h4>
+                  <span class="text-muted">{{type}}</span>
+                </div>
+              {% endif %}
             {% endfor %}
             <div id="nomenu" class="col-xs-4 col-sm-2 placeholder file-placeholder">
               <img class="upload" src="/static/icon/upload_f.ico/" width="100" height="100" alt="Generic placeholder thumbnail" onclick="javascript:fileselect()">
@@ -384,7 +384,6 @@
     <!-- Bootstrap core JavaScript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
-    <script src="/static/js/jquery.min.js"></script>
     <script src="/static/js/bootstrap.min.js"></script>
   </body>
 </html>
