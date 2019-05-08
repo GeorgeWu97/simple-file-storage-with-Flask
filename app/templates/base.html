@@ -2,12 +2,12 @@
 <title>{% block title %}{% endblock %} - file storage</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 <nav>
-  <h1><a href="{{ url_for('init') }}">File Storage System</a></h1>
+  <h1><a href="{{ url_for('login') }}">File Storage System</a></h1>
+  <h1>Hi {{ current_user.username }}</h1>
   <ul>
-    {% if g.user %}
-      <li><span>{{ g.user['username'] }}</span>
-      <li><a href="{{ url_for('init') }}">My info</a>
-      <li><a href="{{ url_for('init') }}">Log Out</a>
+    {% if current_user.username %}
+      <li><a href="{{ url_for('index', path_name='users/' + current_user.username) }}">My root</a>
+      <li><a href="{{ url_for('logout') }}">Log Out</a>
     {% else %}
       <li><a href="{{ url_for('register') }}">Register</a>
       <li><a href="{{ url_for('login') }}">Log In</a>
