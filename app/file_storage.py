@@ -11,9 +11,58 @@ validtype = ['txt', 'pdf', 'doc', 'docx', 'bmp', 'jpg', 'jpeg', 'png', 'gif', 'c
              'ppt', 'pptx', 'pps', 'ppsx', 'avi', 'mov', 'qt', 'asf', 'rm', 'mp4',
              'mp3', 'wav', 'xls', 'xlsx', 'zip', 'rar', '7z', 'iso', 'gz', 'z', 
              'ico', 'icon', 'html', 'css', 'js', 'py', 'c', 'cpp' ,'java']
+             
+def get_type(type):
+    type = type.lower()[1:]
+    if type in ['txt', 'pdf', 'iso']: return type
+    if type in ['doc', 'docx']: return 'word'
+    if type in ['bmp', 'jpg', 'jpeg', 'png', 'gif', 'cr2', 'ico', 'icon']: return 'image'
+    if type in ['ppt', 'pptx', 'pps', 'ppsx']: return 'ppt'
+    if type in ['avi', 'mov', 'qt', 'asf', 'rm', 'mp4']: return 'video'
+    if type in ['mp3', 'wav']: return 'music'
+    if type in ['xls', 'xlsx']: return 'excel'
+    if type in ['zip', 'rar', '7z', 'gz', 'z']: return 'compression'
+    return 'file'
+    
 def secure_path(path):
     return (path.find('..') == -1)
+
+    while path_name[-1] == '/': path_name = path_name[:-1]
     
+def normalsize(s):
+    nexts = {'B':'K', 'K':'M', 'M':'G', 'G':'T'}
+    ns = 'B'
+    while s >=1024:
+        s /= 1024
+        ns = nexts[ns]
+            
+    return "%.4f"%s+ns
+          
+def dirsearch(str):
+    size = 0
+    time = 0
+    if path.exists(str):
+        if path.isfile(str):
+            try:
+                return path.getsize(str), path.getmtime(str)
+            except OSError as err:
+                abort(405)
+        else:
+            try:
+                file_list = listdir(str)
+                for file in file_list:
+                    s, t = dirsearch(str + '/' + file)                  
+                    size += s
+                    time = max(time, t)
+                return size, time
+            except OSError as err:
+                abort(405)
+    return size,time 
+    
+def TimeStampToTime(timestamp):
+    timestruct = t.localtime(timestamp)
+    return t.strftime('%Y-%m-%d %H:%M:%S',timestruct)    
+        
 app = Flask('file_storage')
 app.secret_key = 'some_secret'
 
@@ -87,55 +136,8 @@ def logout():
 
 @app.route('/dir_index/<path:path_name>')
 def index(path_name):
-    while path_name[-1] == '/': path_name = path_name[:-1]
-    
-    def get_type(type):
-        type = type.lower()[1:]
-        if type in ['txt', 'pdf', 'iso']: return type
-        if type in ['doc', 'docx']: return 'word'
-        if type in ['bmp', 'jpg', 'jpeg', 'png', 'gif', 'cr2', 'ico', 'icon']: return 'image'
-        if type in ['ppt', 'pptx', 'pps', 'ppsx']: return 'ppt'
-        if type in ['avi', 'mov', 'qt', 'asf', 'rm', 'mp4']: return 'video'
-        if type in ['mp3', 'wav']: return 'music'
-        if type in ['xls', 'xlsx']: return 'excel'
-        if type in ['zip', 'rar', '7z', 'gz', 'z']: return 'compression'
-        return 'file'
-    
-    def normalsize(s):
-        nexts = {'B':'K', 'K':'M', 'M':'G', 'G':'T'}
-        ns = 'B'
-        while s >=1024:
-            s /= 1024
-            ns = nexts[ns]
-            
-        return "%.4f"%s+ns
-        
-    def dirsearch(str):
-        size = 0
-        time = 0
-        if path.exists(str):
-            if path.isfile(str):
-                try:
-                    return path.getsize(str), path.getmtime(str)
-                except OSError as err:
-                    abort(405)
-            else:
-                try:
-                    file_list = listdir(str)
-                    for file in file_list:
-                        s, t = dirsearch(str + '/' + file)                  
-                        size += s
-                        time = max(time, t)
-                    return size, time
-                except OSError as err:
-                    abort(405)
-        return size,time 
-    
-    def TimeStampToTime(timestamp):
-        timestruct = t.localtime(timestamp)
-        return t.strftime('%Y-%m-%d %H:%M:%S',timestruct)
-
-    cpath = getcwd() + '/' + path_name    
+    cpath = getcwd() + '/' + path_name   
+    index_list = dirsearch(cpath)
     fd_list = listdir(cpath)
     index_list = []
     idx = 1
@@ -153,9 +155,31 @@ def index(path_name):
             index_list.append([file, 'dir', 'folder', idx, size, time])
             
         idx += 1
-   
     return render_template('index.html', list = index_list, path = path_name)
 
+@app.route('/index/<path:path_name>')
+def cindex(path_name):
+    cpath = getcwd() + '/' + path_name   
+    index_list = dirsearch(cpath)
+    fd_list = listdir(cpath)
+    index_list = []
+    idx = 1
+    for file in fd_list:
+        if path.isfile(cpath + '/' + file):
+            size = normalsize(path.getsize(cpath + '/' + file))
+            time = TimeStampToTime(path.getmtime(cpath + '/' + file))
+            name, type = path.splitext(file)
+            index_list.append([name, type[1:], get_type(type), idx, size, time])
+        else:
+            size, time = dirsearch(cpath+ '/' + file)
+            size = normalsize(size)
+            if time == 0 : time = '-------------------------'
+            else: time = TimeStampToTime(time)
+            index_list.append([file, 'dir', 'folder', idx, size, time])
+            
+        idx += 1 
+    return json.dumps({'code':200, 'list':index_list})
+    
 @app.route('/download/<path:file_path>')
 def download(file_path):
     if not secure_path(file_path): abort(405)
@@ -175,11 +199,18 @@ def upload(dir_path):
         return (ext in validtype) and (name.find('\\')==-1 and name.find('/')==-1)
         
     if f and valid_file(f.filename):
+        while (dir_path[-1] == '/'): dir_path = dir_path[:-1]
         if not path.exists(dir_path):
             os.makedirs(dir_path)
 
         f.save(path.join(dir_path,f.filename))
-        return json.dumps({'code':200,'url':url_for('index',path_name=dir_path)})
+        pathn = dir_path + '/' + f.filename
+        name, type = path.splitext(f.filename)
+        fclass = get_type(type)
+        size = normalsize(path.getsize(pathn))
+        time = TimeStampToTime(path.getmtime(pathn))
+        return json.dumps({'code':200, 'class':fclass, 'path':pathn, 'name':name, 
+                           'type':type[1:], 'size':size, 'time':time})
     else: abort(405)
 
 @app.route('/newfolder/<path:dir_path>', methods=['POST'])

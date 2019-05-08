@@ -67,7 +67,11 @@
         display:none;
         z-index:99;
       }
-      #processtube{
+      #selectbar>li.active{
+        font-weight: bolder;
+        font-color: white;
+      }
+      #upload-body{
         display:none;
       }
     </style>
@@ -90,29 +94,61 @@
           contentType:false,
           xhr:function(){
             myxhr = $.ajaxSettings.xhr();
-            if (myxhr.upload){
-              document.getElementById("page-title").innerHTML = "Uploading"
-              $("#processtube").css("display", "block")
-              myxhr.upload.addEventListener('progress', function(e){
-                var loaded = e.loaded;
-                var total = e.total;
-                var percent = Math.floor(100*loaded/total) + "%";
-                $("#processBar").css("width", percent);
-                document.getElementById("process").innerHTML = percent;
-              }, false);
-            }
+            $("#selectbar").children().eq(1).children('a').click();
+            var div = $("#upload-body").children('.main');
+            var id = div.children().length + 1;
+            var fdiv = $('<div class="col-sm-10">')
+            var namediv = $('<div class="col-sm-9">'+fileobj.name+'</div>');
+            var processdiv = $('<div class="col-sm-1">process:0%</div>');
+            processdiv.attr("id", "process"+id);
+            var bardiv = $('<div class="progress progress-small">\
+                              <div class="progress-bar" style="width:0%"></div>\
+                            </div>');
+            bardiv.children('div').attr("id","processbar"+id);
+            fdiv.append(namediv).append(processdiv).append('<div class="clearfix"></div>').append(bardiv);
+            div.append(fdiv);
+            myxhr.upload.addEventListener('progress', function(e){
+              var loaded = e.loaded;
+              var total = e.total;
+              var percent = Math.floor(100*loaded/total) + "%";
+              $("#processbar"+id).css("width", percent);
+              document.getElementById("process" + id).innerHTML="process:"+percent;
+            }, false);
             return myxhr;
           },
           success:function (res) {
             let data = JSON.parse(res);
             if (data.code == 200){
-              window.location.reload();
+                var fdiv = $("<div></div>");
+                fdiv.attr("id", data.path);
+                fdiv.addClass("col-xs-4 col-sm-2 placeholder file file-placeholder");
+                fdiv.attr("ondblclick", "download(this.id)");
+                fdiv.attr("name", "file");
+                var img = $("<img>");
+                img.attr("src", "/static/icon/"+data.class+".ico");
+                img.attr("width", "100");
+                img.attr("height", "100");
+                img.addClass("img-responsive");
+                img.attr("alt","Generic placeholder thumbnail");
+                var h4 = $('<h4 class="filename">'+data.name+'</h4>');
+                var span = $('<span class="text-muted">'+data.type+'</span>');
+                fdiv.append(img).append(h4).append(span);
+                $("#nomenu").before(fdiv);
+                var fl = $("#file-inform");
+                var num = fl.children('tr').length;
+                fl.append('<tr>\
+                            <td>'+((Array(3).join('0') + (num+1)).slice(-3))+'</td>\
+                            <td>'+data.name+'</td>\
+                            <td>'+data.type+'</td>\
+                            <td>'+data.size+'</td>\
+                            <td>'+data.time+'</td>\
+                          </tr>')
             }else {
               alert(data.error)
             }
           },
-          error:function (){
-            alert("error");
+          error:function(){
+            alert("upload error");
           }
         });
       }
@@ -183,7 +219,7 @@
             success:function (res) {
               let data = JSON.parse(res);
               if (data.code == 200){
-                location.href=data.url
+                location.href=data.url;
               }else {
                 alert(data.error)
               }
@@ -192,10 +228,22 @@
         }
       }
       $(function(){
+        $("#selectbar").on("click", "li a", function(e){
+          var li=$(this).parent()
+          li.siblings().removeClass("active");
+          li.addClass("active");
+          var divid = $(this).attr("href");
+          $(divid).siblings().css("display", "none");
+          $(divid).css("display", "block");
+          return false;
+        });
         var file_menu = document.getElementById("context-menu_file");
         var folder_menu = document.getElementById("context-menu_folder");
         var upload_menu = document.getElementById("context-menu_upload");
         $("#mainbody").on("click","div",function(e){
+          file_menu.style.display = "none";
+          folder_menu.style.display = "none";
+          upload_menu.style.display = "none";
           $(this).siblings('div').removeClass("cur");
           if (this.id!="nomenu") {
             $(this).addClass("cur");
@@ -222,7 +270,11 @@
               folder_menu.style.top = e.clientY+"px";
               folder_menu.name = this.id;              
             };
-          };
+          } else{
+            file_menu.style.display = "none";
+            folder_menu.style.display = "none";
+            upload_menu.style.display = "none";            
+          }
           e.stopPropagation();
           return false;
         });
@@ -273,11 +325,11 @@
           <a class="navbar-brand" href="#">File storage</a>
         </div>
         <div id="navbar" class="navbar-collapse collapse">
-          <ul class="nav navbar-nav navbar-right">
-            <li><a href="#">File</a></li>
-            <li><a href="#">Upload</a></li>
-            <li><a href="#">Download</a></li>
+          <ul id="selectbar" class="nav navbar-nav navbar-right">
+            <li class="active"><a href="#file-body">File</a></li>
+            <li><a href="#upload-body">Upload</a></li>
             <li><a href="#">Setting</a></li>
+            <li><a href="#">Help</a></li>
           </ul>
           <form class="navbar-form navbar-right">
             <input type="text" class="form-control" placeholder="Search...">
@@ -289,7 +341,15 @@
       <input type="file" name={{path}} id="fileToUpload" onchange="fileupload(this.name)"style="display:none">
     </form>
     <div class="container-fluid">
-      <div class="row">
+      <div id="upload-body" class="row">
+        <div class="col-sm-3 col-md-1 sidebar"></div>
+        <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-1 main">
+          <h1 class="page-header">
+            <span> Upload </span>          
+          </h1>
+        </div>
+      </div>
+      <div id="file-body" class="row">
         <div class="col-sm-3 col-md-1 sidebar">
           <ul class="nav nav-sidebar mya">
             <li class="active"><a href="">Overview <span class="sr-only">(current)</span></a></li>
@@ -303,14 +363,7 @@
         </div>
         <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-1 main">
           <h1 class="page-header">
-            <span id="page-title">View</span>
-            <div id="processtube" class="progress progress-striped active">
-              <div id="processBar" class="progress-bar progress-bar-success" role="progressbar"
-              aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"
-              style="width:0%;">
-                <span id="process" style="font-size:15px;color:Yellow"></span>
-              </div>
-            </div>
+            <span id="page-title">File</span>
           </h1>
           <div id="context-menu_file">
             <ul class="dropdown-menu mymenu" role="menu">
@@ -364,7 +417,7 @@
                   <th>Last Modified time</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody id="file-inform">
                 {% for name,type,class,id,size,time in list%}
                   <tr>
                     <td>{{"%03d" % id}}</td>
