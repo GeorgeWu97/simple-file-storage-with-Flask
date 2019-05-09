@@ -8,18 +8,13 @@ from os import path, getcwd, mkdir, rmdir, remove, replace, listdir
 import json
 import time as t
 
-validtype = ['txt', 'pdf', 'doc', 'docx', 'bmp', 'jpg', 'jpeg', 'png', 'gif', 'cr2',
-             'ppt', 'pptx', 'pps', 'ppsx', 'avi', 'mov', 'qt', 'asf', 'rm', 'mp4',
-             'mp3', 'wav', 'xls', 'xlsx', 'zip', 'rar', '7z', 'iso', 'gz', 'z', 
-             'ico', 'icon', 'html', 'css', 'js', 'py', 'c', 'cpp' ,'java']
-             
 def get_type(type):
     type = type.lower()[1:]
     if type in ['txt', 'pdf', 'iso']: return type
     if type in ['doc', 'docx']: return 'word'
     if type in ['bmp', 'jpg', 'jpeg', 'png', 'gif', 'cr2', 'ico', 'icon']: return 'image'
     if type in ['ppt', 'pptx', 'pps', 'ppsx']: return 'ppt'
-    if type in ['avi', 'mov', 'qt', 'asf', 'rm', 'mp4']: return 'video'
+    if type in ['avi', 'mov', 'qt', 'asf', 'rm', 'mp4', 'mkv']: return 'video'
     if type in ['mp3', 'wav']: return 'music'
     if type in ['xls', 'xlsx']: return 'excel'
     if type in ['zip', 'rar', '7z', 'gz', 'z']: return 'compression'
@@ -28,7 +23,6 @@ def get_type(type):
 def secure_path(path):
     return (path.find('..') == -1)
 
-    while path_name[-1] == '/': path_name = path_name[:-1]
     
 def normalsize(s):
     nexts = {'B':'K', 'K':'M', 'M':'G', 'G':'T'}
@@ -172,6 +166,11 @@ def download(file_path):
 
 @app.route('/upload/<path:dir_path>', methods=['POST'])    
 def upload(dir_path):
+    validtype = ['txt', 'pdf', 'doc', 'docx', 'bmp', 'jpg', 'jpeg', 'png', 'gif', 'cr2',
+             'ppt', 'pptx', 'pps', 'ppsx', 'avi', 'mov', 'qt', 'asf', 'rm', 'mp4', 'mkv',
+             'mp3', 'wav', 'xls', 'xlsx', 'zip', 'rar', '7z', 'iso', 'gz', 'z', 
+             'ico', 'icon', 'html', 'css', 'js', 'py', 'c', 'cpp' ,'java']
+             
     if not secure_path(dir_path): abort(405)
     f = request.files['file']
     
@@ -213,7 +212,7 @@ def createfolder(dir_path):
         dirname = oname+'(%d)'%id
         id += 1
     mkdir(root_dir+'/'+dir_path+'/'+dirname)
-    return json.dumps({'code':200, 'url':url_for('index', path_name = dir_path)})
+    return json.dumps({'code':200, 'dn':dirname})
     
 @app.route('/delete/<path:file_path>', methods=["DELETE"])
 def delete(file_path):

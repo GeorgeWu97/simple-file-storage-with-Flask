@@ -144,6 +144,9 @@
                             <td>'+data.size+'</td>\
                             <td>'+data.time+'</td>\
                           </tr>')
+                
+                document.getElementById("fileToUpload").value=null;
+                
             }else {
               alert(data.error)
             }
@@ -275,7 +278,30 @@
             success:function (res) {
               let data = JSON.parse(res);
               if (data.code == 200){
-                location.href=data.url;
+                var fdiv = $("<div></div>");
+                fdiv.attr("id", data.dn);
+                fdiv.addClass("col-xs-4 col-sm-2 placeholder file file-placeholder");
+                fdiv.attr("ondblclick", "next_dir(this.id)");
+                fdiv.attr("name", "folder");
+                var img = $("<img>");
+                img.attr("src", "/static/icon/folder.ico");
+                img.attr("width", "100");
+                img.attr("height", "100");
+                img.addClass("img-responsive");
+                img.attr("alt","Generic placeholder thumbnail");
+                var h4 = $('<h4 class="filename">'+data.dn+'</h4>');
+                var span = $('<span class="text-muted">dir</span>');
+                fdiv.append(img).append(h4).append(span);
+                $("#nomenu").before(fdiv);
+                var fl = $("#file-inform");
+                var num = fl.children('tr').length;
+                fl.append('<tr>\
+                            <td>'+((Array(3).join('0') + (num+1)).slice(-3))+'</td>\
+                            <td>'+data.dn+'</td>\
+                            <td>dir</td>\
+                            <td>0.0000B</td>\
+                            <td>-------------------------</td>\
+                          </tr>')
               }else {
                 alert(data.error)
               }
@@ -444,6 +470,8 @@
           <div id="context-menu_upload">
             <ul class="dropdown-menu mymenu" role="menu">
               <li><a tabindex="-1" href="javascript:fileselect()" style="background-image:url('/static/icon/upload.ico');background-repeat:no-repeat;background-position:66px;">upload</a></li>
+              <li><a tabindex="-1" href="javascript:newfolder()" style="background-image:url('/static/icon/newfolder.ico');background-repeat:no-repeat;background-position:85px;">newfolder</a></li>
+              <li><a tabindex="-1" href="javascript:window.location.reload(true)" style="background-image:url('/static/icon/reload.ico');background-repeat:no-repeat;background-position:62px;">reload</a></li>
             </ul>
           </div>
           <div id="mainbody" class="row placeholders">
