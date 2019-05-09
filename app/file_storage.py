@@ -1,7 +1,8 @@
 #! /usr/bin/env python3
 # -*- coding:utf-8 -*-
-from flask import Flask, render_template, abort, send_from_directory, request, redirect, url_for, g, flash, session
+from flask import Flask, render_template, abort, send_from_directory, request, redirect, url_for, g, flash, session, make_response
 from werkzeug.utils import secure_filename
+from werkzeug.urls import url_quote
 import os
 from os import path, getcwd, mkdir, rmdir, remove, replace, listdir
 import json
@@ -156,29 +157,6 @@ def index(path_name):
             
         idx += 1
     return render_template('index.html', list = index_list, path = path_name)
-
-@app.route('/index/<path:path_name>')
-def cindex(path_name):
-    cpath = getcwd() + '/' + path_name   
-    index_list = dirsearch(cpath)
-    fd_list = listdir(cpath)
-    index_list = []
-    idx = 1
-    for file in fd_list:
-        if path.isfile(cpath + '/' + file):
-            size = normalsize(path.getsize(cpath + '/' + file))
-            time = TimeStampToTime(path.getmtime(cpath + '/' + file))
-            name, type = path.splitext(file)
-            index_list.append([name, type[1:], get_type(type), idx, size, time])
-        else:
-            size, time = dirsearch(cpath+ '/' + file)
-            size = normalsize(size)
-            if time == 0 : time = '-------------------------'
-            else: time = TimeStampToTime(time)
-            index_list.append([file, 'dir', 'folder', idx, size, time])
-            
-        idx += 1 
-    return json.dumps({'code':200, 'list':index_list})
     
 @app.route('/download/<path:file_path>')
 def download(file_path):
@@ -186,7 +164,10 @@ def download(file_path):
     while file_path[-1]=='/': file_path = file_path[:-1]
     dir_path = getcwd()
     if path.isfile(dir_path + '/' + file_path):
-        return send_from_directory(dir_path, file_path, as_attachment=True)
+        dirpath, filename = path.split(dir_path + '/' + file_path)
+        response = make_response(send_from_directory(dirpath, filename, as_attachment=True))
+        response.headers["Filename"] = url_quote(filename)
+        return response
     abort(404)
 
 @app.route('/upload/<path:dir_path>', methods=['POST'])    
@@ -202,14 +183,22 @@ def upload(dir_path):
         while (dir_path[-1] == '/'): dir_path = dir_path[:-1]
         if not path.exists(dir_path):
             os.makedirs(dir_path)
-
+        
+        id = 1
+        name, type = path.splitext(f.filename)
+        type = type[1:]
+        rn = name
+        while path.exists(path.join(dir_path,f.filename)):
+            f.filename = rn + '(%d)'%id + '.' + type
+            id += 1
+            
         f.save(path.join(dir_path,f.filename))
         pathn = dir_path + '/' + f.filename
         name, type = path.splitext(f.filename)
         fclass = get_type(type)
         size = normalsize(path.getsize(pathn))
         time = TimeStampToTime(path.getmtime(pathn))
-        return json.dumps({'code':200, 'class':fclass, 'path':pathn, 'name':name, 
+        return json.dumps({'code':200, 'class':fclass, 'fn':f.filename, 'name':name, 
                            'type':type[1:], 'size':size, 'time':time})
     else: abort(405)
 
@@ -226,7 +215,7 @@ def createfolder(dir_path):
     mkdir(root_dir+'/'+dir_path+'/'+dirname)
     return json.dumps({'code':200, 'url':url_for('index', path_name = dir_path)})
     
-@app.route('/delete/<path:file_path>')
+@app.route('/delete/<path:file_path>', methods=["DELETE"])
 def delete(file_path):
     def del_rec(str):
         if path.exists(str):
@@ -258,7 +247,7 @@ def delete(file_path):
     if path.exists(target_path):
         del_rec(target_path)
         # return json.dumps({'code':200,'url':url_for('index',path_name=file_path, _external=True)})
-        return redirect(url_for('index', path_name = parent(file_path)))
+        return json.dumps({'code':200});
     else: abort(404)
 
                
