@@ -81,9 +81,12 @@
       function fileselect(){
         document.getElementById("fileToUpload").click(); 
       };
+      function get_path(){
+        return eval("'"+document.getElementById("mainbody").getAttribute("name")+"'");
+      }
       function fileupload(path){
-        var fileobj= document.getElementById("fileToUpload").files[0];
-        var url="/upload/"+eval("'"+{{path|tojson}}+"'");
+        var fileobj=document.getElementById("fileToUpload").files[0];
+        var url="/upload/"+get_path();
         var form=new FormData();
         form.append("file",fileobj)
         $.ajax({
@@ -123,7 +126,7 @@
                 var fdiv = $("<div></div>");
                 fdiv.attr("id", data.fn);
                 fdiv.addClass("col-xs-4 col-sm-2 placeholder file file-placeholder");
-                fdiv.attr("ondblclick", "download(this.id)");
+                fdiv.attr("ondblclick", "cdownload(this.id)");
                 fdiv.attr("name", "file");
                 var img = $("<img>");
                 img.attr("src", "/static/icon/"+data.class+".ico");
@@ -150,9 +153,6 @@
             }else {
               alert(data.error)
             }
-          },
-          error:function(){
-            alert("upload error");
           }
         });
       }
@@ -161,7 +161,11 @@
       }
       function foldernext_dir(){
         var fn =document.getElementById("context-menu_folder").name;
-        var pathn = eval("'"+{{path|tojson}}+"'")+"/"+eval("'"+fn+"'")
+        var pathn = get_path()+"/"+eval("'"+fn+"'")
+        next_dir(pathn);
+      }
+      function cnext_dir(fn){
+        var pathn = get_path()+"/"+eval("'"+fn+"'")
         next_dir(pathn);
       }
       function download(pathn, fn){
@@ -191,7 +195,6 @@
             alert('uncomputable');
           }         
         }, false);
-        xhr.addEventListener("error", function(e){alert('download failed');}, false);
         xhr.responseType = "blob";
         xhr.onreadystatechange = function(){
           if (xhr.readyState == 4 && xhr.status == 200){
@@ -216,7 +219,11 @@
       }
       function filedownload(){
         var fn =document.getElementById("context-menu_file").name;
-        var pathn = eval("'"+{{path|tojson}}+"'")+"/"+eval("'"+fn+"'");
+        var pathn = get_path()+"/"+eval("'"+fn+"'");
+        download(pathn, eval("'"+fn+"'"));
+      }
+      function cdownload(fn){
+        var pathn = get_path()+"/"+eval("'"+fn+"'");
         download(pathn, eval("'"+fn+"'"));
       }
       function do_delete(pathn,fn){
@@ -240,25 +247,21 @@
             else{
               alert('error code:'+data.code);
             }
-          },
-          error:function(){
-            alert('delete error');
           }
         });      
       }
       function filedelete(){
         var fn = document.getElementById("context-menu_file").name;
-        var pathn = eval("'"+{{path|tojson}}+"'")+"/"+eval("'"+fn+"'");
+        var pathn = get_path()+"/"+eval("'"+fn+"'");
         do_delete(pathn,fn);
       }
       function folderdelete(){
         var fn = document.getElementById("context-menu_folder").name;
-        var pathn = eval("'"+{{path|tojson}}+"'")+"/"+eval("'"+fn+"'");
+        var pathn = get_path()+"/"+eval("'"+fn+"'");
         do_delete(pathn,fn);
       }
       function goback(){
-        var pathn = {{path|tojson}};
-        pathn = eval("'" + pathn + "'");
+        var pathn = get_path();
         k = pathn.length-1;
         while (k>0 && pathn[k]!="/") k--;
         if (k>0) pathn = pathn.substr(0, k)
@@ -267,9 +270,7 @@
       function newfolder(){
         var name = prompt("input the folder name", "new folder");
         if (name){
-          var pathn = {{path|tojson}};
-          pathn = eval("'" + pathn + "'");
-          var url = "/newfolder/" + pathn
+          var url = "/newfolder/" + get_path()
           $.ajax({
             url:url,
             type:"post",
@@ -281,7 +282,7 @@
                 var fdiv = $("<div></div>");
                 fdiv.attr("id", data.dn);
                 fdiv.addClass("col-xs-4 col-sm-2 placeholder file file-placeholder");
-                fdiv.attr("ondblclick", "next_dir(this.id)");
+                fdiv.attr("ondblclick", "cnext_dir(this.id)");
                 fdiv.attr("name", "folder");
                 var img = $("<img>");
                 img.attr("src", "/static/icon/folder.ico");
@@ -453,7 +454,7 @@
         </div>
         <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-1 main">
           <h1 class="page-header">
-            <span id="page-title">File</span>
+            <span id="page-title">View: {{path}}</span>
           </h1>
           <div id="context-menu_file">
             <ul class="dropdown-menu mymenu" role="menu">
@@ -474,18 +475,18 @@
               <li><a tabindex="-1" href="javascript:window.location.reload(true)" style="background-image:url('/static/icon/reload.ico');background-repeat:no-repeat;background-position:62px;">reload</a></li>
             </ul>
           </div>
-          <div id="mainbody" class="row placeholders">
+          <div id="mainbody" name={{path|tojson}} class="row placeholders">
             {% for name,type,class,id,size,time in list%}
               {% if type != 'dir' %}
                 <div id={{(name+'.'+type) | tojson}} class="col-xs-4 col-sm-2 placeholder file file-placeholder" 
-                ondblclick="download(this.id)" name="file">              
+                ondblclick="cdownload(this.id)" name="file">              
                   <img src={{"/static/icon/"+class+".ico"}} width="100" height="100" class="img-responsive" alt="Generic placeholder thumbnail">
                   <h4 class = "filename">{{name}}</h4>
                   <span class="text-muted">{{type}}</span>
                 </div>
               {% else %}
                 <div id={{name | tojson}} class="col-xs-4 col-sm-2 placeholder file file-placeholder" 
-                ondblclick="next_dir(this.id)" name="folder">  
+                ondblclick="cnext_dir(this.id)" name="folder">  
                   <img src={{"/static/icon/"+class+".ico"}} width="100" height="100" class="img-responsive" alt="Generic placeholder thumbnail">
                   <h4 class = "filename">{{name}}</h4>
                   <span class="text-muted">{{type}}</span>
