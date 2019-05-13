@@ -88,7 +88,7 @@ def index(path_name):
     return render_template('index.html', list = index_list, path = path_name)
 
 @app.route('/c_index/<path:path_name>')
-def index(path_name):
+def cindex(path_name):
     while path_name[-1]=='/': path_name = path_name[:-1]
     dpath = getcwd() + '/' + path_name   
     index_list, size, time = dirsearch(dpath, path_name)
