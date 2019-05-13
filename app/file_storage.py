@@ -125,13 +125,7 @@ def upload(dir_path):
             id += 1
             
         f.save(path.join(dir_path,f.filename))
-        pathn = dir_path + '/' + f.filename
-        name, type = path.splitext(f.filename)
-        fclass = get_type(type)
-        size = normalsize(path.getsize(pathn))
-        time = TimeStampToTime(path.getmtime(pathn))
-        return json.dumps({'code':200, 'class':fclass, 'fn':f.filename, 'name':name, 
-                           'type':type[1:], 'size':size, 'time':time})
+        return json.dumps({'code':200})
     else: abort(405)
 
 @app.route('/newfolder/<path:dir_path>', methods=['POST'])
@@ -145,7 +139,7 @@ def createfolder(dir_path):
         dirname = oname+'(%d)'%id
         id += 1
     mkdir(root_dir+'/'+dir_path+'/'+dirname)
-    return json.dumps({'code':200, 'dn':dirname})
+    return json.dumps({'code':200})
     
 @app.route('/delete/<path:file_path>', methods=["DELETE"])
 def delete(file_path):                
