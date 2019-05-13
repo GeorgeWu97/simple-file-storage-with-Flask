@@ -87,6 +87,13 @@ def index(path_name):
     index_list, size, time = dirsearch(dpath, path_name)
     return render_template('index.html', list = index_list, path = path_name)
 
+@app.route('/c_index/<path:path_name>')
+def index(path_name):
+    while path_name[-1]=='/': path_name = path_name[:-1]
+    dpath = getcwd() + '/' + path_name   
+    index_list, size, time = dirsearch(dpath, path_name)
+    return json.dumps({'list':index_list, 'path':path_name})
+    
 @app.route('/download/<path:file_path>')
 def download(file_path):
     if not secure_path(file_path): abort(405)
