@@ -92,7 +92,7 @@ def cindex(path_name):
     while path_name[-1]=='/': path_name = path_name[:-1]
     dpath = getcwd() + '/' + path_name   
     index_list, size, time = dirsearch(dpath, path_name)
-    return json.dumps({'list':index_list, 'path':path_name})
+    return json.dumps({'code':200, 'list':index_list, 'path':path_name})
     
 @app.route('/download/<path:file_path>')
 def download(file_path):

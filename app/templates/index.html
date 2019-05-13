@@ -78,6 +78,12 @@
     </style>
     <script src="/static/js/jquery.min.js"></script>
     <script> 
+      function ito3s(s){
+        return (Array(3).join('0') + s).slice(-3)
+      }
+      function reload(){
+        next_dir(get_path())
+      }
       function fileselect(){
         document.getElementById("fileToUpload").click(); 
       };
@@ -123,41 +129,67 @@
           success:function (res) {
             let data = JSON.parse(res);
             if (data.code == 200){
-                var fdiv = $("<div></div>");
-                fdiv.attr("id", data.fn);
-                fdiv.addClass("col-xs-4 col-sm-2 placeholder file file-placeholder");
-                fdiv.attr("ondblclick", "cdownload(this.id)");
-                fdiv.attr("name", "file");
-                var img = $("<img>");
-                img.attr("src", "/static/icon/"+data.class+".ico");
-                img.attr("width", "100");
-                img.attr("height", "100");
-                img.addClass("img-responsive");
-                img.attr("alt","Generic placeholder thumbnail");
-                var h4 = $('<h4 class="filename">'+data.name+'</h4>');
-                var span = $('<span class="text-muted">'+data.type+'</span>');
-                fdiv.append(img).append(h4).append(span);
-                $("#nomenu").before(fdiv);
-                var fl = $("#file-inform");
-                var num = fl.children('tr').length;
-                fl.append('<tr>\
-                            <td>'+((Array(3).join('0') + (num+1)).slice(-3))+'</td>\
-                            <td>'+data.name+'</td>\
-                            <td>'+data.type+'</td>\
-                            <td>'+data.size+'</td>\
-                            <td>'+data.time+'</td>\
-                          </tr>')
-                
-                document.getElementById("fileToUpload").value=null;
-                
+              document.getElementById("fileToUpload").value=null
+              reload()                
             }else {
-              alert(data.error)
+              alert(data.code)
             }
           }
         });
       }
       function next_dir(pathn){
-        location.href = "/dir_index/"+pathn;
+        $.ajax({
+          url:"/c_index/"+pathn,
+          type:"get",
+          async:true,
+          success:function(res){
+            let data = JSON.parse(res)
+            if (data.code == 200){
+              $("#mainbody").children('.file').remove()
+              $("#mainbody").attr("name", data.path)
+              $("#page-title").html("View: " + data.path)
+              var mf=$("#file-inform")
+              var ub=$("#nomenu")
+              mf.children().remove()
+              var list = data.list
+              var pn = data.path
+              for (var i=0;i<list.length;i++){
+                var name=list[i][0];
+                var type=list[i][1];
+                var clas=list[i][2];
+                var id=list[i][3];
+                var size=list[i][4];
+                var time=list[i][5];
+                var h4=$('<h4 class="filename">'+name+'</h4>')
+                var span=$('<span class="text-muted">'+type+'</span>')
+                var img=$('<img width="100" height="100" class="img-responsive" alt="Generic placeholder thumbnail">')
+                img.attr("src", "/static/icon/"+clas+".ico")
+                if (type != "dir"){
+                  var ib=$('<div class="col-xs-4 col-sm-2 placeholder file file-placeholder"\
+                            ondblclick="cdownload(this.id)" name="file">')
+                  ib.attr("id", name+'.'+type);
+                  ib.append(img).append(h4).append(span)
+                  ub.before(ib)
+                }
+                else{
+                  var ib=$('<div class="col-xs-4 col-sm-2 placeholder file file-placeholder"\
+                            ondblclick="cnext_dir(this.id)" name="folder">')
+                  ib.attr("id", name);
+                  ib.append(img).append(h4).append(span)
+                  ub.before(ib)
+                }
+                var tr=$('<tr>\
+                            <td>'+ito3s(i+1)+'</td>\
+                            <td>'+name+'</td>\
+                            <td>'+type+'</td>\
+                            <td>'+size+'</td>\
+                            <td>'+time+'</td>\
+                          </tr>')
+                mf.append(tr)          
+              }
+            }
+          }
+        });
       }
       function foldernext_dir(){
         var fn =document.getElementById("context-menu_folder").name;
@@ -233,16 +265,7 @@
           success:function(res){
             let data = JSON.parse(res);
             if (data.code == 200){
-              var div = document.getElementById(fn);
-              var index = $(div).index();
-              $(div).remove();
-              var tb = $("#file-inform");
-              var tr = tb.children().eq(index);
-              tr.remove();
-              tr = tb.children();
-              for (var i=0;i<tr.length;i++){
-                tr.eq(i).children().eq(0).html(((Array(3).join('0') + (i+1)).slice(-3)));
-              }
+              reload()
             }
             else{
               alert('error code:'+data.code);
@@ -264,8 +287,10 @@
         var pathn = get_path();
         k = pathn.length-1;
         while (k>0 && pathn[k]!="/") k--;
-        if (k>0) pathn = pathn.substr(0, k)
-        location.href = "/dir_index/" + pathn
+        if (k>0) {
+          pathn = pathn.substr(0, k)
+          next_dir(pathn)
+        }
       }
       function newfolder(){
         var name = prompt("input the folder name", "new folder");
@@ -279,32 +304,9 @@
             success:function (res) {
               let data = JSON.parse(res);
               if (data.code == 200){
-                var fdiv = $("<div></div>");
-                fdiv.attr("id", data.dn);
-                fdiv.addClass("col-xs-4 col-sm-2 placeholder file file-placeholder");
-                fdiv.attr("ondblclick", "cnext_dir(this.id)");
-                fdiv.attr("name", "folder");
-                var img = $("<img>");
-                img.attr("src", "/static/icon/folder.ico");
-                img.attr("width", "100");
-                img.attr("height", "100");
-                img.addClass("img-responsive");
-                img.attr("alt","Generic placeholder thumbnail");
-                var h4 = $('<h4 class="filename">'+data.dn+'</h4>');
-                var span = $('<span class="text-muted">dir</span>');
-                fdiv.append(img).append(h4).append(span);
-                $("#nomenu").before(fdiv);
-                var fl = $("#file-inform");
-                var num = fl.children('tr').length;
-                fl.append('<tr>\
-                            <td>'+((Array(3).join('0') + (num+1)).slice(-3))+'</td>\
-                            <td>'+data.dn+'</td>\
-                            <td>dir</td>\
-                            <td>0.0000B</td>\
-                            <td>-------------------------</td>\
-                          </tr>')
+                reload()
               }else {
-                alert(data.error)
+                alert(data.code)
               }
             }
           });          
@@ -472,7 +474,7 @@
             <ul class="dropdown-menu mymenu" role="menu">
               <li><a tabindex="-1" href="javascript:fileselect()" style="background-image:url('/static/icon/upload.ico');background-repeat:no-repeat;background-position:66px;">upload</a></li>
               <li><a tabindex="-1" href="javascript:newfolder()" style="background-image:url('/static/icon/newfolder.ico');background-repeat:no-repeat;background-position:85px;">newfolder</a></li>
-              <li><a tabindex="-1" href="javascript:window.location.reload(true)" style="background-image:url('/static/icon/reload.ico');background-repeat:no-repeat;background-position:62px;">reload</a></li>
+              <li><a tabindex="-1" href="javascript:reload()" style="background-image:url('/static/icon/reload.ico');background-repeat:no-repeat;background-position:62px;">reload</a></li>
             </ul>
           </div>
           <div id="mainbody" name={{path|tojson}} class="row placeholders">
