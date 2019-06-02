@@ -15,6 +15,9 @@
     <!-- Custom styles for this template -->
     <link href="/static/dashboard.css" rel="stylesheet">
     <style type="text/css">
+      .clr:hover{
+        cursor:pointer
+      }
       .file:hover{
         background-color: WhiteSmoke;
         cursor:pointer
@@ -90,8 +93,14 @@
       function get_path(){
         return eval("'"+document.getElementById("mainbody").getAttribute("name")+"'");
       }
+      function clear(){
+        alert('hi');
+        $(this).parent(".uploaditem").remove()
+      }
       function fileupload(path){
-        var fileobj=document.getElementById("fileToUpload").files[0];
+        var files = document.getElementById("fileToUpload").files;
+        for (var i = 0; i < files.length; i++){
+        var fileobj=document.getElementById("fileToUpload").files[i];
         var url="/upload/"+get_path();
         var form=new FormData();
         form.append("file",fileobj)
@@ -106,16 +115,17 @@
             myxhr = $.ajaxSettings.xhr();
             $("#selectbar").children().eq(1).children('a').click();
             var div = $("#upload-body").children('.main');
-            var id = div.children().length + 1;
-            var fdiv = $('<div class="col-sm-10">')
-            var namediv = $('<div class="col-sm-9">'+fileobj.name+'</div>');
+            var id = div.children('.uploaditem').length + 1;
+            var fdiv = $('<div class="col-sm-10 uploaditem">')
+            var namediv = $('<div class="col-sm-8">'+fileobj.name+'</div>');
             var progressdiv = $('<div class="col-sm-1">progress:0%</div>');
+            var clear = $('<div class="col-sm-1 col-sm-offset-2"><img class="clr" src="/static/icon/clr.ico"></div>');
             progressdiv.attr("id", "uprogress"+id);
             var bardiv = $('<div class="progress progress-small">\
                               <div class="progress-bar" style="width:0%"></div>\
                             </div>');
             bardiv.children('div').attr("id","uprogressbar"+id);
-            fdiv.append(namediv).append(progressdiv).append('<div class="clearfix"></div>').append(bardiv);
+            fdiv.append(namediv).append(progressdiv).append(clear).append('<div class="clearfix"></div>').append(bardiv);
             div.append(fdiv);
             myxhr.upload.addEventListener('progress', function(e){
               var loaded = e.loaded;
@@ -136,6 +146,7 @@
             }
           }
         });
+        }
       }
       function next_dir(pathn){
         $.ajax({
@@ -313,6 +324,12 @@
         }
       }
       $(function(){
+        $("#upload-body").on("click", ".main .uploaditem div .clr", function(e){
+          $(this).parent().parent().remove();
+        });
+        $(".btn-primary").on("click", function(e){
+          $("#upload-body").children(".main").children(".uploaditem").remove();
+        });
         $("#selectbar").on("click", "li a", function(e){
           var li=$(this).parent()
           li.siblings().removeClass("active");
@@ -423,7 +440,7 @@
       </div>
     </nav>
     <form action="" enctype="multipart/form-data" method="post">     
-      <input type="file" id="fileToUpload" onchange="fileupload()"style="display:none">
+      <input type="file" id="fileToUpload" onchange="fileupload()"style="display:none" multiple="multiple">
     </form>
     <div class="container-fluid">
       <div id="upload-body" style="display:none" class="row">
@@ -431,6 +448,7 @@
         <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-1 main">
           <h1 class="page-header">
             <span> Upload </span>          
+            <button type="button" class="btn btn-primary">Clear</button>
           </h1>
         </div>
       </div>
