@@ -15,8 +15,17 @@
     <!-- Custom styles for this template -->
     <link href="/static/dashboard.css" rel="stylesheet">
     <style type="text/css">
+      .delete-menu:hover{
+        cursor:pointer;
+      }
+      .download-menu:hover{
+        cursor:pointer;
+      }
+      .ctrl:{
+        display:none;
+      }
       .clr:hover{
-        cursor:pointer
+        cursor:pointer;
       }
       .file:hover{
         background-color: WhiteSmoke;
@@ -97,6 +106,8 @@
         alert('hi');
         $(this).parent(".uploaditem").remove()
       }
+      var uid = 0;
+      var did = 0;
       function fileupload(path){
         var files = document.getElementById("fileToUpload").files;
         for (var i = 0; i < files.length; i++){
@@ -115,8 +126,9 @@
             myxhr = $.ajaxSettings.xhr();
             $("#selectbar").children().eq(1).children('a').click();
             var div = $("#upload-body").children('.main');
-            var id = div.children('.uploaditem').length + 1;
-            var fdiv = $('<div class="col-sm-10 uploaditem">')
+            var id = uid;
+            uid += 1;
+            var fdiv = $('<div class="col-sm-10 record">')
             var namediv = $('<div class="col-sm-8">'+fileobj.name+'</div>');
             var progressdiv = $('<div class="col-sm-1">progress:0%</div>');
             var clear = $('<div class="col-sm-1 col-sm-offset-2"><img class="clr" src="/static/icon/clr.ico"></div>');
@@ -214,16 +226,18 @@
       function download(pathn, fn){
         $("#selectbar").children().eq(2).children('a').click();
         var div = $("#download-body").children('.main');
-        var id = div.children().length + 1;
-        var fdiv = $('<div class="col-sm-10">')
+        var id = did;
+        did += 1;
+        var fdiv = $('<div class="col-sm-10 record">')
         var namediv = $('<div class="col-sm-9">'+fn+'</div>');
         var progressdiv = $('<div class="col-sm-1">progress:0%</div>');
         progressdiv.attr("id", "dprogress"+id);
+        var clear = $('<div class="col-sm-1 col-sm-offset-1"><img class="clr" src="/static/icon/clr.ico"></div>')
         var bardiv = $('<div class="progress progress-small">\
                         <div class="progress-bar" style="width:0%"></div>\
                         </div>');
         bardiv.children('div').attr("id","dprogressbar"+id);
-        fdiv.append(namediv).append(progressdiv).append('<div class="clearfix"></div>').append(bardiv);
+        fdiv.append(namediv).append(progressdiv).append(clear).append('<div class="clearfix"></div>').append(bardiv);
         div.append(fdiv);
         var url = "/download/" + pathn;
         var xhr = new XMLHttpRequest();
@@ -260,11 +274,6 @@
         }
         xhr.send();
       }
-      function filedownload(){
-        var fn =document.getElementById("context-menu_file").name;
-        var pathn = get_path()+"/"+eval("'"+fn+"'");
-        download(pathn, eval("'"+fn+"'"));
-      }
       function cdownload(fn){
         var pathn = get_path()+"/"+eval("'"+fn+"'");
         download(pathn, eval("'"+fn+"'"));
@@ -283,16 +292,6 @@
             }
           }
         });      
-      }
-      function filedelete(){
-        var fn = document.getElementById("context-menu_file").name;
-        var pathn = get_path()+"/"+eval("'"+fn+"'");
-        do_delete(pathn,fn);
-      }
-      function folderdelete(){
-        var fn = document.getElementById("context-menu_folder").name;
-        var pathn = get_path()+"/"+eval("'"+fn+"'");
-        do_delete(pathn,fn);
       }
       function goback(){
         var pathn = get_path();
@@ -324,11 +323,32 @@
         }
       }
       $(function(){
-        $("#upload-body").on("click", ".main .uploaditem div .clr", function(e){
+        $(".download-menu").on("click", function(e){
+          files = $(".cur");
+          for (var i = 0; i < files.length; i++){
+            if ($(files[i]).attr('name')=='file'){
+              var fn = $(files[i]).attr('id')
+              var pathn = get_path()+"/"+eval("'"+fn+"'");
+              download(pathn, eval("'"+fn+"'"));
+            }
+          }
+        });
+        $(".delete-menu").on("click", function(e){
+          files = $(".cur");
+          for (var i = 0; i < files.length; i++){
+            var fn = $(files[i]).attr("id");
+            var pathn = get_path()+"/"+eval("'"+fn+"'");
+            do_delete(pathn, fn);
+          }
+        });
+        $("#upload-body").on("click", ".main .record div .clr", function(e){
           $(this).parent().parent().remove();
         });
+        $("#download-body").on("click", ".main .record div .clr", function(e){
+          $(this).parent().parent().remove();
+        })
         $(".btn-primary").on("click", function(e){
-          $("#upload-body").children(".main").children(".uploaditem").remove();
+          $(this).parent().siblings(".record").remove();
         });
         $("#selectbar").on("click", "li a", function(e){
           var li=$(this).parent()
@@ -346,7 +366,7 @@
           file_menu.style.display = "none";
           folder_menu.style.display = "none";
           upload_menu.style.display = "none";
-          $(this).siblings('div').removeClass("cur");
+          if (!window.event.ctrlKey) $(this).siblings('div').removeClass("cur");
           if (this.id!="nomenu") {
             $(this).addClass("cur");
           };
@@ -354,7 +374,7 @@
           return false;
         });
         $("#mainbody").on("contextmenu","div",function(e){
-          $(this).siblings('div').removeClass("cur");
+          if (!window.event.ctrlKey) $(this).siblings('div').removeClass("cur");
           if (this.id!="nomenu") {
             $(this).addClass("cur");
             if (this.getAttribute("name")=="file"){
@@ -413,7 +433,7 @@
   </head>
 
   <body>
-
+    <input type="button" class='ctrl'></button>
     <nav class="navbar navbar-inverse navbar-fixed-top">
       <div class="container-fluid">
         <div class="navbar-header">
@@ -457,6 +477,7 @@
         <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-1 main">
           <h1 class="page-header">
             <span> Download </span>          
+            <button type="button" class="btn btn-primary">Clear</button>
           </h1>
         </div>
       </div>
@@ -478,14 +499,14 @@
           </h1>
           <div id="context-menu_file">
             <ul class="dropdown-menu mymenu" role="menu">
-              <li><a tabindex="-1" href="javascript:filedelete()" style="background-image:url('/static/icon/delete.ico');background-repeat:no-repeat;background-position:62px;">delete</a></li>
-              <li><a tabindex="-1" href="javascript:filedownload()" style="background-image:url('/static/icon/download.ico');background-repeat:no-repeat;background-position:85px;">download</a></li>
+              <li><a tabindex="-1" class="delete-menu" style="background-image:url('/static/icon/delete.ico');background-repeat:no-repeat;background-position:62px;">delete</a></li>
+              <li><a tabindex="-1" class="download-menu" style="background-image:url('/static/icon/download.ico');background-repeat:no-repeat;background-position:85px;">download</a></li>
             </ul>             
           </div>
           <div id="context-menu_folder">
             <ul class="dropdown-menu mymenu" role="menu">
               <li><a tabindex="-1" href="javascript:foldernext_dir()" style="background-image:url('/static/icon/open.ico');background-repeat:no-repeat;background-position:55px;">open</a></li>
-              <li><a tabindex="-1" href="javascript:folderdelete()" style="background-image:url('/static/icon/delete.ico');background-repeat:no-repeat;background-position:62px;">delete</a></li>
+              <li><a tabindex="-1" class="delete-menu" style="background-image:url('/static/icon/delete.ico');background-repeat:no-repeat;background-position:62px;">delete</a></li>
             </ul>             
           </div>         
           <div id="context-menu_upload">
